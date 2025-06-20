@@ -1,8 +1,13 @@
 {
 	"dependencies": {
-		"ws": "^8.18.2",
-		"koa": "^3.0.0",
+		"@types/koa": "^2.15.0",
 		"@types/ws": "^8.18.1",
-		"@types/koa": "^2.15.0"
+		"dayjs": "^1.11.13",
+		"koa": "^3.0.0",
+		"ws": "^8.18.2"
+	},
+	"devDependencies": {
+		"ts-node": "^10.9.2",
+		"typescript": "^5.8.3"
 	}
 }
