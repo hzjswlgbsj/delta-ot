@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@delta-ot/collaborate':
+    specifier: workspace:^
+    version: link:../collaborate
   quill:
     specifier: '2'
     version: 2.0.3

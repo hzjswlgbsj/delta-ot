@@ -22,7 +22,7 @@ export enum HeartbeatType {
 export type CMD = {
   type: SendCommandType;
   // 这里先试用 any，但实际上最好是每个 Type 都有对应的 data 数据结构定义
-  data: any;
+  data?: any;
 };
 
 /** 接收的信令 */
@@ -46,8 +46,8 @@ export enum SendCommandType {
   HEARTBEAT = "heartbeat",
   // 进入文档
   JOIN = "join",
-  // 离开文档
-  LEAVE = "leave",
+  // 关键帧
+  KEY_FRAME = "key_frame",
 }
 
 /** 进入原因 1000-正常进入 1001-重连进入 */

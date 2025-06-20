@@ -24,25 +24,43 @@ const HEARTBEAT_TIMEOUT = 1000 * 20;
 export class CollaborationWS extends WebSocketClient {
   constructor(
     private documentId: string,
+    private userInfo: UserInfo,
     config: WebsocketConfig,
     private msgConsumer: {
       onClosed: () => unknown;
       onConnected: () => unknown;
       onReconnect: () => unknown;
       onReconnected: () => unknown;
-      dealControlCmd: (msg: Message) => unknown;
+      dealCmd: (msg: Message) => unknown;
       onNotRecMsgTimeout: () => unknown;
-    },
-    private userInfo: UserInfo
+    }
   ) {
     super(config);
   }
 
   notRecMsgTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private encodeCmd(cmd: CMD) {
+    return JSON.stringify(cmd);
+  }
+
+  /** 发送进入文档命令，实际上是表示当前用户进入到这篇文档中了 */
+  private sendJoinCmd(isReconnect: boolean = false) {
+    // 正常进入和重连进入服务端可能有不同的处理逻辑
+    const joinReason = isReconnect ? JoinReason.RECONNECT : JoinReason.NORMAL;
+    this.sendCmd({
+      type: SendCommandType.JOIN,
+      data: {
+        userId: this.userInfo.userId,
+        documentId: this.documentId,
+        loginReason: joinReason,
+      },
+    });
+  }
+
   onReceiveMsg = (event: MessageEvent) => {
     const payload: string = event.data;
-    console.info("[CollaborationWS]", "onReceiveMsg", event.data);
+    console.info("[CollaborationWS]", "Received from server:", event.data);
 
     // 重置接收心跳的定时器
     this.resetRecvHBTimer();
@@ -59,28 +77,29 @@ export class CollaborationWS extends WebSocketClient {
     /** 这里只会显式的处理通用的信令类型比如心跳，其他业务相关的信令会交给外部实例处理 */
     switch (type) {
       case ReceiveCommandType.HEARTBEAT:
+        console.log("[CollaborationWS]", "Received heartbeat:", data);
+
         // 客户端如果收到心跳后会检查心跳类型是不是 Client，如果是证明是客户端自己发送的心跳被服务端回过来了，那么这个消息称之为 Ack
         const isAck = data.heartbeatType === HeartbeatType.CLIENT;
         if (!isAck) {
           // 服务端发送过来的,需要将原文回复
-          this.sendHeartbeat(payload);
+          this.sendHeartbeat({ type, data });
         }
         break;
       default:
-        console.info("[CollaborationWS]", "dealReceiveMsg", payload);
-        this.msgConsumer.dealControlCmd({ type, data });
+        this.msgConsumer.dealCmd({ type, data });
         break;
     }
   };
 
   onReady = (isReconnect: boolean = false) => {
     // ws 准备就绪后，发送进入房间的命令
-    this.sendLoginCmd(isReconnect);
+    this.sendJoinCmd(isReconnect);
 
     // 然后发送索要关键帧的命令
     // 这里的关键帧是指告诉服务端，当前客户端需要获取最新的文档数据，这里指的是 delta 的 ops
     this.sendCmd({
-      type: SendCommandType.JOIN,
+      type: SendCommandType.KEY_FRAME,
       data: {
         userId: this.userInfo.userId,
         documentId: this.documentId,
@@ -89,32 +108,38 @@ export class CollaborationWS extends WebSocketClient {
   };
 
   onClosed = () => {
+    console.log("❌ Connection closed");
+
     this.msgConsumer.onClosed();
     this.notRecMsgTimer && clearTimeout(this.notRecMsgTimer);
   };
 
   onConnected = () => {
+    console.log("✅ Connected to collab server");
     this.onReady();
     this.msgConsumer.onConnected();
   };
 
   onReconnected = () => {
+    console.log("🔄 Reconnected to collab server");
     this.onReady(true);
     this.msgConsumer.onReconnected();
   };
 
   onReconnect = () => {
+    console.log("🕐 Reconnecting to collab server...");
+
     this.msgConsumer.onReconnect();
     this.notRecMsgTimer && clearTimeout(this.notRecMsgTimer);
   };
 
-  sendHeartbeat(recvCmd?: any) {
+  sendHeartbeat(data?: any) {
     // 发送心跳的命令，不重置发送心跳的定时器
-    const c = recvCmd || [
-      client_ctrl_cmd.HEARTBEAT,
-      HeartbeatType.CLIENT,
-      Date.now(),
-    ];
+    const c = data || {
+      type: SendCommandType.HEARTBEAT,
+      data: { heartbeatType: HeartbeatType.CLIENT, timestamp: Date.now() },
+    };
+
     this.send(this.encodeCmd(c));
   }
 
@@ -122,16 +147,7 @@ export class CollaborationWS extends WebSocketClient {
     // 重置发送心跳的timer
     this.resetSendHBTimer();
 
-    this.send(
-      this.encodeCmd({
-        type: SendCommandType.JOIN,
-        data: {},
-      })
-    );
-  }
-
-  private encodeCmd(cmd: any) {
-    return JSON.stringify(cmd);
+    this.send(this.encodeCmd(cmd));
   }
 
   /**
@@ -139,20 +155,6 @@ export class CollaborationWS extends WebSocketClient {
    */
   decodeCmd(data: string): Message {
     return safeJsonParse(data);
-  }
-
-  /** 发送登录命令，实际上是表示当前用户进入到这篇文档中了 */
-  private sendLoginCmd(isReconnect: boolean = false) {
-    // 正常进入和重连进入服务端可能有不同的处理逻辑
-    const joinReason = isReconnect ? JoinReason.RECONNECT : JoinReason.NORMAL;
-    this.sendCmd({
-      type: SendCommandType.JOIN,
-      data: {
-        userId: this.userInfo.userId,
-        documentId: this.documentId,
-        loginReason: joinReason,
-      },
-    });
   }
 
   destroy(): void {

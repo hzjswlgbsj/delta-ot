@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@delta-ot/collaborate/*": [
+        "/collaborate/src/*"
+      ],
+      "@delta-ot/document/*": [
+        "/document/src/*"
+      ]
+    }
+  }
+}

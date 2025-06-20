@@ -1,6 +1,6 @@
 import Koa from "koa";
 import { createServer } from "http";
-import { setupWebSocket } from "./ws/socket";
+import { setupWebSocket } from "./socket";
 
 const app = new Koa();
 const server = createServer(app.callback());

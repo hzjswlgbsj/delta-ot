@@ -1,9 +1,10 @@
 {
-  "name": "document",
+  "name": "@delta-ot/document",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "vite",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,6 +15,7 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
+    "@delta-ot/collaborate": "workspace:*",
     "quill": "2",
     "quill-delta": "^5.1.0"
   }
