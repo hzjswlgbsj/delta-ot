@@ -23,7 +23,7 @@ export class OTEngine {
    * const final = base.compose(opA).compose(B′); // => "BAhello"
    */
   static transform(op1: Delta, op2: Delta): Delta {
-    return op1.transform(op2, false); // 后来的优先 => priority = false
+    return op1.transform(op2, true); // op1 优先，op2 被调整
   }
   /**
    * compose：将两个操作合并为一个（顺序执行）

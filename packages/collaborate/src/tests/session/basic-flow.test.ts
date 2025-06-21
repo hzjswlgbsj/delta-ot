@@ -13,7 +13,7 @@ describe("OTSession basic flow", () => {
     userA.commitLocal(opA);
 
     // 模拟 opA 从 A 传到 B，被 B 接收并 transform 应用
-    userB.receiveRemote(opA);
+    userB.apply(opA);
 
     // 两端最终文档内容应一致
     expect(userA.getDocument().getContents()).toEqual(

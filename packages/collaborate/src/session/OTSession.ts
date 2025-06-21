@@ -13,9 +13,9 @@ export class OTSession {
   private base: Delta;
 
   // 所有尚未被服务器 ack 的本地操作（按顺序）
-  private pending: Delta[] = [];
+  private unacknowledgedOps: Delta[] = [];
 
-  // 实际用户看到的当前文档内容（= base + pending）
+  // 实际用户看到的当前文档内容（= base + unacknowledgedOps）
   private document: DocumentModel;
 
   constructor(userId: string, initialContent?: Delta) {
@@ -25,54 +25,54 @@ export class OTSession {
   }
 
   /**
-   * 提交一个本地操作：立即应用到文档，并添加到 pending
+   * 本地提交：立即 apply 到文档，同时记录为未确认状态
    */
   commitLocal(op: Delta): void {
-    this.pending.push(op);
-    this.document.apply(op);
+    this.unacknowledgedOps.push(op);
+    this.base = this.base.compose(op);
+    this.document.apply(op); // 增量更新，无需 rebuild
   }
 
   /**
-   * 接收一个远端操作，并将其 transform 后应用到文档
-   * （远端操作基于服务器状态，即本地的 base）
+   * 接收远端操作，并 transform 后合入 base，再叠加本地未 ack 的操作
    */
-  receiveRemote(remoteOp: Delta): void {
-    // 先将远端操作基于 pending 逐一转换
+  receiveRemote(remoteOp: Delta) {
     let transformed = remoteOp;
-    for (const localOp of this.pending) {
-      // transformed = OTEngine.transform(transformed, localOp);
+
+    this.unacknowledgedOps.forEach((localOp) => {
       transformed = OTEngine.transform(localOp, transformed);
-    }
+    });
 
-    // 应用到 base
     this.base = this.base.compose(transformed);
-
-    // 重新计算可视文档 = base + pending
     this.rebuildDocument();
   }
 
   /**
-   * 服务器确认本地的第一个操作（即 pending[0]），表示该操作已被广播
+   * 服务端确认首个 unack 操作：从队列移除，重建文档
+   * TODO: 后续支持按 op-id 精确 ack
    */
   ack(): void {
-    const ackedOp = this.pending.shift();
-    if (!ackedOp) return;
-
-    this.base = this.base.compose(ackedOp);
-
-    // 重建文档
+    this.unacknowledgedOps.shift();
     this.rebuildDocument();
   }
 
   /**
-   * 重新构造 document：= base + all pending
+   * 重建视图文档：= base + 所有未确认操作
    */
   private rebuildDocument(): void {
     let composed = this.base;
-    for (const op of this.pending) {
+    for (const op of this.unacknowledgedOps) {
       composed = composed.compose(op);
     }
     this.document.setContents(composed);
+  }
+
+  /**
+   * 直接应用远端已经 transform 过的操作（跳过 transform 流程）
+   */
+  apply(op: Delta): void {
+    this.base = this.base.compose(op);
+    this.document.apply(op);
   }
 
   getDocument(): DocumentModel {
@@ -84,10 +84,10 @@ export class OTSession {
   }
 
   /**
-   * 释放资源，清理状态（可扩展）
+   * 释放资源，清理状态
    */
   destroy(): void {
-    this.pending = [];
+    this.unacknowledgedOps = [];
     this.base = new Delta();
     this.document = new DocumentModel();
   }
