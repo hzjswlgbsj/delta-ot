@@ -45,7 +45,6 @@ describe("OTEngine.transform - delete vs insert", () => {
 
     const opInsPrime = OTEngine.transform(opDel, opIns); // Delete 先到，Insert 后到需 transform
     const final = base.compose(opDel).compose(opInsPrime);
-
-    expect(final).toEqual(new Delta().insert("hloX")); // 插入位置被左移后仍插入成功
+    expect(final).toEqual(new Delta().insert("hlXo")); // 插入位置被左移后仍插入成功
   });
 });

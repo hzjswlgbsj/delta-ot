@@ -78,11 +78,12 @@
 ## 推荐测试文件执行顺序
 
 1. insert-insert-transform.test.ts（已完成）。- 基础的插入冲突，验证 transform 核心行为。
-2. insert-delete-transform.test.ts（已完成）。- 插入与删除混合，位置调整较复杂，紧接着插入测试，保证删除在插入后正确偏移。
-3. delete-insert-transform.test.ts（已完成）。- 删除与插入顺序调换，进一步验证插入如何适应已删文本。
-4. delete-delete-transform.test.ts（进行中）。- 删除-删除冲突，覆盖重叠删除和范围合并，难度较高。
-5. retain-insert-transform.test.ts（未开始）。- 光标保留与插入，主要考察 retain 影响。
-6. retain-delete-transform.test.ts（未开始）。- 光标保留与删除，考察 retain 对删除的偏移。
-7. insert-retain-transform.test.ts（未开始）。- 插入操作对 retain 的影响，主要是属性和光标的调整。
-8. retain-retain-transform.test.ts（未开始）。- 两个 retain 操作，针对属性变更和无位置变更的情况。
-9. multi-op-transform.test.ts（未开始）。- 综合多个操作组合，复杂场景，验证整体稳定性。
+2. insert-insert-priority-transform.test.ts （已完成）。- 优先级测试，验证 insert-insert 冲突的优先级。
+3. insert-delete-transform.test.ts（已完成）。- 插入与删除混合，位置调整较复杂，紧接着插入测试，保证删除在插入后正确偏移。
+4. delete-insert-transform.test.ts（已完成）。- 删除与插入顺序调换，进一步验证插入如何适应已删文本。
+5. delete-delete-transform.test.ts（已完成）。- 删除-删除冲突，覆盖重叠删除和范围合并，难度较高。
+6. retain-insert-transform.test.ts（已完成）。- 光标保留与插入，主要考察 retain 影响。
+7. retain-delete-transform.test.ts（已完成）。- 光标保留与删除，考察 retain 对删除的偏移。
+8. insert-retain-transform.test.ts（已完成）。- 插入操作对 retain 的影响，主要是属性和光标的调整。
+9. retain-retain-transform.test.ts（已完成）。- 两个 retain 操作，针对属性变更和无位置变更的情况。
+10. multi-op-transform.test.ts（已完成）。- 综合多个操作组合，复杂场景，验证整体稳定性。

@@ -63,11 +63,12 @@ describe("OTEngine.transform - insert vs insert", () => {
 
   it("opA and opB insert in different places (no transform needed)", () => {
     const base = new Delta().insert("hello");
-    const opA = new Delta().retain(1).insert("A");
-    const opB = new Delta().retain(3).insert("B");
+    const opA = new Delta().retain(1).insert("A"); // hAello
+    const opB = new Delta().retain(3).insert("B"); // 意图是 helBlo
 
-    // 顺序无所谓
-    const result = base.compose(opA).compose(opB);
+    const opBPrime = OTEngine.transform(opA, opB); // 或者写明顺序
+
+    const result = base.compose(opA).compose(opBPrime);
 
     expect(result).toEqual(new Delta().insert("hAelBlo"));
   });
