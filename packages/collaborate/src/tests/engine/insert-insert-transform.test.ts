@@ -55,7 +55,7 @@ describe("OTEngine.transform - insert vs insert", () => {
     const opA = new Delta().retain(1).insert("A");
     const opB = new Delta().retain(2).insert("B");
 
-    // B 后到达，无需调整位置
+    // B 后到达，需调整位置
     const opBPrime = OTEngine.transform(opA, opB);
     const result = base.compose(opA).compose(opBPrime);
 
