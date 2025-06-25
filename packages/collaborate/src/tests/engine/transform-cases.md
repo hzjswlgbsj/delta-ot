@@ -2,17 +2,13 @@
 
 本文件记录 OT transform 的核心测试场景矩阵，每一行代表一种 opA 与 opB 的组合变换关系，用于引导 engine 层的 transform 测试用例设计。
 
----
-
-## 🧠 基本定义
+## 基本定义
 
 - opA：先应用的操作（已在文档上）
 - opB：后到的操作（需 transform）
 - transform(opA, opB) 表示：**让 opB 适应 opA 已应用后的文档状态**
 
----
-
-## ✅ 测试矩阵
+## 测试矩阵
 
 | 编号 | opA 类型 | opB 类型 | 示例简述                                                | 预期行为                                            | 应用场景       |
 | ---- | -------- | -------- | ------------------------------------------------------- | --------------------------------------------------- | -------------- |
@@ -31,35 +27,20 @@
 | 13   | insert   | noop     | A: insert("A", 0) / B: ∅                                | 不影响 noop                                         | 不操作无效化   |
 | 14   | retain   | retain   | A: retain(2, {bold:true}) / B: retain(2, {italic:true}) | 属性合并或覆盖                                      | 富文本样式变更 |
 
----
+## 说明
 
-## 📦 说明
+- 以上测试应逐条在 engine 层以 Vitest 编写独立用例
+- 每种组合应测试光标不同位置、边界情况（0、末尾）、重叠范围等边缘情况
+- 用例应覆盖 insert/retain/delete 组合的所有可能变换路径
+- 对于每个测试结果，应 assert 最终 compose(base + opA + opB′) 的 Delta 正确性
 
-- ✅ 以上测试应逐条在 engine 层以 Vitest 编写独立用例
-- ✅ 每种组合应测试光标不同位置、边界情况（0、末尾）、重叠范围等边缘情况
-- ✅ 用例应覆盖 insert/retain/delete 组合的所有可能变换路径
-- ✅ 对于每个测试结果，应 assert 最终 compose(base + opA + opB′) 的 Delta 正确性
-
----
-
-## ⏭️ 后续拓展建议
-
-- [ ] 支持 attributes（如 bold、italic）变更的 transform
-- [ ] 复合 Delta：一个 Delta 包含多个操作的 transform 路径（复杂混合场景）
-- [ ] 空 Delta 的处理（noop）
-- [ ] 隐式 retain（跳过无意义 retain）
-
----
-
-## ❗ 版本号和序列号提示
+## 版本号和序列号提示
 
 - 当前测试集中未涉及版本号（version）和序列号（seq）概念，所有操作视为无版本。
 - 在实际协同系统中，服务端会根据版本号顺序执行 transform，确保操作的有序性。
 - 版本控制应在 OTSession 层管理，Engine 层保持纯粹的 transform 功能。
 
----
-
-## 🧪 推荐测试文件命名和对应关系
+## 推荐测试文件命名和对应关系
 
 | 测试文件                        | 主要测试内容     |
 | ------------------------------- | ---------------- |
@@ -72,8 +53,6 @@
 | retain-retain-transform.test.ts | retain 属性变更  |
 | multi-op-transform.test.ts      | 复杂组合多操作   |
 | noop-transform.test.ts          | 空操作（noop）   |
-
----
 
 ## 推荐测试文件执行顺序
 

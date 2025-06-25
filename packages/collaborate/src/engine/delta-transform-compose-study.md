@@ -16,13 +16,13 @@
 
 举个例子：
 
-```ts
+```typescript
 [{ retain: 10 }];
 ```
 
 如果我们需要处理 `retain:10` 和另一个 `retain:4` 的并发情况，就必须将其裁切为：
 
-```ts
+```typescript
 retain:4 + retain:6
 ```
 
@@ -66,51 +66,84 @@ retain:4 + retain:6
 
 ### 源码解析（带详细注释）
 
-```ts
+```typescript
+/**
+ * 返回当前操作的一部分或完整内容，并自动推进迭代器的游标状态。
+ *
+ * 在 Delta 的 transform 或 compose 过程中，需要对操作（op）进行**按字符级别**的消费与对齐处理。
+ * 因此不能简单地一次性处理完整 op，而需要「切片式」地逐步消费操作内容。
+ *
+ * 例如：
+ * - 当前 op 为 `{ retain: 10 }`，调用 `next(4)` 会返回 `{ retain: 4 }`，并留下剩余 `{ retain: 6 }`。
+ * - 当前 op 为 `{ insert: "hello" }`，`offset = 2`，调用 `next(2)` 会返回 `{ insert: "ll" }`。
+ *
+ * ### 特性说明：
+ * - 支持 insert、retain、delete 三种类型；
+ * - 支持部分消费（裁切），并自动更新 offset；
+ * - 返回始终为合法的 Delta Op 结构；
+ * - 对于不可裁切的嵌入（如 image embed），仅允许整块返回。
+ *
+ * @param length - 要消费的最大长度，默认 Infinity 表示完整消费当前 op。
+ * @returns 标准化的 Op 片段，类型可能为 `{ insert }`、`{ retain }` 或 `{ delete }`。
+ *          若所有操作已消费完，返回 `{ retain: Infinity }` 作为虚拟终止占位。
+ */
 next(length?: number): Op {
-  if (!length) length = Infinity; // 默认消费整段
+  // 如果没有指定 length，默认消耗无限长（即整个 op）
+  if (!length) {
+    length = Infinity;
+  }
 
   const nextOp = this.ops[this.index];
+
+  // 如果还有操作未遍历完
   if (nextOp) {
     const offset = this.offset;
-    const opLength = Op.length(nextOp); // 当前 op 总长度
+    const opLength = Op.length(nextOp);
 
-    // 如果 length 足够消耗剩下的整个 op，推进到下一个 op
+    // 如果 length 足以消费剩下的整个 op，推进到下一个 op
     if (length >= opLength - offset) {
       length = opLength - offset;
       this.index += 1;
       this.offset = 0;
     } else {
-      // 否则只是部分消费，offset 推进
+      // 否则只推进 offset，保留当前 op 供下一轮继续消费
       this.offset += length;
     }
 
-    // === delete 类型 ===
+    // === delete 类型处理 ===
     if (typeof nextOp.delete === 'number') {
       return { delete: length };
     }
 
-    // === insert/retain 类型 ===
+    // === retain/insert 类型处理 ===
     const retOp: Op = {};
+
     if (nextOp.attributes) {
       retOp.attributes = nextOp.attributes;
     }
 
     if (typeof nextOp.retain === 'number') {
-      retOp.retain = length; // 可切片 retain
+      // retain:number，可以被部分消费
+      retOp.retain = length;
     } else if (typeof nextOp.retain === 'object' && nextOp.retain !== null) {
-      retOp.retain = nextOp.retain; // 不可切片 retain（如 embed）
+      // retain:object 是嵌入内容（如图片），必须整体处理，不能切
+      // 此时 offset 必须是 0，length == 1
+      retOp.retain = nextOp.retain;
     } else if (typeof nextOp.insert === 'string') {
-      retOp.insert = nextOp.insert.substr(offset, length); // 字符串切片
+      // insert:string 可按字符切片处理
+      retOp.insert = nextOp.insert.substr(offset, length);
     } else {
-      retOp.insert = nextOp.insert; // insert object，不可切片
+      // insert:object（嵌入内容），不能切，必须整体返回
+      // 此时 offset 必须是 0，length == 1
+      retOp.insert = nextOp.insert;
     }
 
     return retOp;
+  } else {
+    // 如果操作序列已经结束，默认返回一个无限 retain
+    // 表示“什么都不做，但保持位置向前推进”
+    return { retain: Infinity };
   }
-
-  // 如果 ops 全部消费完，返回 retain: Infinity 表示“虚拟占位”
-  return { retain: Infinity };
 }
 ```
 
@@ -128,7 +161,7 @@ next(length?: number): Op {
 
 #### 示例 1：insert 字符串切片
 
-```ts
+```typescript
 this.ops = [{ insert: "hello" }];
 this.offset = 2;
 next(2) → { insert: "ll" }
@@ -136,7 +169,7 @@ next(2) → { insert: "ll" }
 
 #### 示例 2：delete 分段处理
 
-```ts
+```typescript
 this.ops = [{ delete: 10 }];
 next(4) → { delete: 4 }
 next(6) → { delete: 6 }
@@ -144,7 +177,7 @@ next(6) → { delete: 6 }
 
 #### 示例 3：嵌入内容（embed）不可裁切
 
-```ts
+```typescript
 this.ops = [{ insert: { image: "url" } }];
 next(1) → { insert: { image: "url" } }
 next(2) → ❌ 错误！嵌入对象不允许裁切
@@ -152,7 +185,7 @@ next(2) → ❌ 错误！嵌入对象不允许裁切
 
 ### 裁切与游标推进逻辑总结
 
-```ts
+```typescript
 if (length >= opLength - offset) {
   // 当前这段被完整消费，进入下一个 op
   this.index += 1;
@@ -180,7 +213,7 @@ if (length >= opLength - offset) {
 
 如果你用 `forEach` / `map` 来 transform 两个 Delta，你会写出这样的代码：
 
-```ts
+```typescript
 opsA.forEach((opA) => {
   opsB.forEach((opB) => {
     // opA 比 opB 长，怎么办？谁偏移了？要拆吗？退回吗？
@@ -192,7 +225,7 @@ opsA.forEach((opA) => {
 
 而 OpIterator + next(length) 则完全摆脱这些状态管理：
 
-```ts
+```typescript
 while (iterA.hasNext() || iterB.hasNext()) {
   const len = Math.min(iterA.peekLength(), iterB.peekLength());
   const a = iterA.next(len);
@@ -234,7 +267,7 @@ while (iterA.hasNext() || iterB.hasNext()) {
 
 ### 方法签名
 
-```ts
+```typescript
 transform(index: number, priority?: boolean): number;
 transform(other: Delta, priority?: boolean): Delta;
 ```
@@ -243,7 +276,19 @@ transform(other: Delta, priority?: boolean): Delta;
 
 ### 源码 + 注释
 
-```ts
+```typescript
+/**
+ * 将一个操作转化为另一个操作，以便于实现实时协同编辑。
+ * 规则：
+ *  - 如果当前操作是插入并且具有优先级，则保留位置以移动光标。
+ *  - 如果其他操作是插入，则直接将操作插入到结果中。
+ *  - 如果两个操作都是删除或保留，则取最小长度并对齐操作。
+ *  - 如果两个操作都是保留，则合并保留长度和属性（样式）。
+ *
+ * @param arg - 要转化的操作，可以是数字索引或 Delta 对象。
+ * @param priority - 转化的优先级，默认为 false。
+ * @returns 转化后的操作，可以是数字索引或 Delta 对象。
+ */
 transform(arg: number | Delta, priority = false): typeof arg {
   priority = !!priority;
 
@@ -416,7 +461,7 @@ transform(arg: number | Delta, priority = false): typeof arg {
 
 ### transformPosition 方法签名
 
-```ts
+```typescript
 transformPosition(index: number, priority?: boolean): number
 ```
 
@@ -428,7 +473,7 @@ transformPosition(index: number, priority?: boolean): number
 
 ### 带详细注释的源码解析
 
-```ts
+```typescript
 transformPosition(index: number, priority = false): number {
   priority = !!priority;
 
@@ -508,33 +553,346 @@ B 的调用：
 
 > 一句话总结：**transformPosition 就是「根据变更后文档，重新计算你该待在哪」。**
 
-## Delta.prototype.compose 方法解析（待补充）
+## Delta.prototype.compose 方法解析
 
-我们已经了解了 transform 的流程，下一步将继续解析 compose，它用于将两个操作「合并为一个整体操作」，以减少操作数量并提升性能。
+在前面我们学习了 `transform` 如何解决并发冲突，但在协同编辑的另一个重要场景中，我们还需要将两个串行的操作序列合并成一个 —— 这正是 `compose` 的职责。
 
-## 总结：Delta 协同模型的核心设计哲学
+> 简单说：**compose 是把两个连续执行的 Delta 操作合成一个等价的 Delta。**
 
-> **Delta transform/compose 的本质并不是单向遍历，而是字符级对齐处理。**
+比如：
 
-因此它引入了 `OpIterator`，用来支持：
-
-- 操作的部分切割
-- 操作之间的同步推进
-- 嵌入内容的自定义处理
-- 样式的合并与消解
-
-这样的设计既抽象又优雅，让 Delta 成为协同编辑领域非常成熟且实用的数据模型。
-
-```ts
-// 伪代码：transform 核心循环逻辑
-while (iterA.hasNext() || iterB.hasNext()) {
-  const len = Math.min(iterA.peekLength(), iterB.peekLength());
-  const opA = iterA.next(len);
-  const opB = iterB.next(len);
-  // 对 opA 和 opB 做差异处理，推入结果 Delta
-}
+```typescript
+A = [{ insert: "Hello" }];
+B = [{ retain: 5 }, { insert: " World" }];
+A.compose(B) = [{ insert: "Hello World" }];
 ```
 
-最终一切归结为一句话：
+### 应用场景
 
-> **Delta transform 是一种字符粒度的冲突裁切器，优雅、通用、对齐友好。**
+- 本地用户编辑操作：插入文本 → 修改样式 → 删除字符，这三步操作会不断合成成一个简化的 Delta
+- 服务端合并历史记录：将多个提交批次压缩成一次保存
+- 与 `transform` 结合：transform 后结果通常要 compose 到当前状态
+
+### 方法签名
+
+```typescript
+compose(other: Delta, keepNull?: boolean): Delta;
+```
+
+- `other`：后一个 Delta
+- `keepNull`：是否保留 null 属性（默认不保留）
+
+### 核心逻辑：按最小长度对齐，对每段做合并处理
+
+实现方式与 `transform` 类似，采用 `OpIterator` 对两个操作列表进行对齐，然后按类型进行合并。
+
+### 三种核心操作分支逻辑
+
+在 `compose` 中，核心是根据两端的操作类型进行合并处理，分为：
+
+| 分支            | 判断条件                                       | 处理逻辑简述             |
+| --------------- | ---------------------------------------------- | ------------------------ |
+| A 是 `delete`   | 当前内容被删，不论 B 是什么都被吞掉            | 返回 A 的 `delete`       |
+| B 是 `insert`   | 新插入内容，直接加入结果 Delta 中              | 返回 B 的 `insert`       |
+| 双方是 `retain` | 合并 `retain` 的属性（样式），保留目标内容变更 | 合并后的 `retain` + 样式 |
+
+其他类型，如 insert + retain 或 retain + delete，会先切片后合并（由 `OpIterator.next(length)` 保证）
+
+### 带详细注释的 compose 源码
+
+```typescript
+/**
+   * Compose two Deltas into one.
+   *
+   * 该方法用于将当前 Delta 与另一个 Delta 进行合并，形成一个等效于「先执行 this，再执行 other」的复合操作。
+   * 在富文本编辑器或协同编辑场景中，当一个用户连续执行多次变更（如先插入文字，再应用样式），
+   * 可以通过 compose 合并为一个 Delta，优化存储与同步效率。
+   *
+   * ### 合并规则说明：
+   * - Insert 与 Retain：合并样式或嵌入内容，保留变更。
+   * - Insert 与 Delete：互相抵消（插入后立刻删除，结果为空）。
+   * - Delete 与任何：删除优先，内容被移除。
+   *
+   * ### 特殊优化：
+   * - 支持对连续 Retain 开头的 Delta 进行跳过加速处理。
+   * - 若 other Delta 的尾部全为 retain 且未变更，提前终止。
+   *
+   * @param other - 要合并的另一个 Delta。
+   * @returns 一个新的 Delta，其效果等同于 `this` 和 `other` 顺序执行的合并结果。
+   */
+  compose(other: Delta): Delta {
+    const thisIter = new OpIterator(this.ops);
+    const otherIter = new OpIterator(other.ops);
+    const ops = [];
+
+    // 优化前置处理：
+    // 如果 other 的第一个 op 是 retain 且无样式（代表前面是空操作），
+    // 则从 this 中复制对应数量的 insert 到结果中
+    const firstOther = otherIter.peek();
+    if (
+      firstOther != null &&
+      typeof firstOther.retain === 'number' &&
+      firstOther.attributes == null
+    ) {
+      let firstLeft = firstOther.retain;
+      while (
+        thisIter.peekType() === 'insert' &&
+        thisIter.peekLength() <= firstLeft
+      ) {
+        firstLeft -= thisIter.peekLength();
+        ops.push(thisIter.next()); // 把头部 insert 搬过来
+      }
+      if (firstOther.retain - firstLeft > 0) {
+        otherIter.next(firstOther.retain - firstLeft); // 部分消费 other 的 retain
+      }
+    }
+
+    const delta = new Delta(ops); // 初始 delta 已包含前置 insert
+
+    while (thisIter.hasNext() || otherIter.hasNext()) {
+      // case1: other 是 insert，优先放入结果
+      if (otherIter.peekType() === 'insert') {
+        delta.push(otherIter.next());
+      }
+      // case2: this 是 delete，保留删除操作
+      else if (thisIter.peekType() === 'delete') {
+        delta.push(thisIter.next());
+      }
+      // case3: 处理 retain 或 retain + delete 的合并
+      else {
+        const length = Math.min(thisIter.peekLength(), otherIter.peekLength());
+        const thisOp = thisIter.next(length);
+        const otherOp = otherIter.next(length);
+
+        if (otherOp.retain) {
+          const newOp: Op = {};
+
+          // 处理 retain 数值 or 对象逻辑
+          if (typeof thisOp.retain === 'number') {
+            newOp.retain =
+              typeof otherOp.retain === 'number' ? length : otherOp.retain;
+          } else {
+            if (typeof otherOp.retain === 'number') {
+              // 本轮是 insert op
+              if (thisOp.retain == null) {
+                newOp.insert = thisOp.insert;
+              } else {
+                newOp.retain = thisOp.retain;
+              }
+            } else {
+              // 双方都是 embed retain，调用 handler.compose
+              const action = thisOp.retain == null ? 'insert' : 'retain';
+              const [embedType, thisData, otherData] = getEmbedTypeAndData(
+                thisOp[action],
+                otherOp.retain,
+              );
+              const handler = Delta.getHandler(embedType);
+              newOp[action] = {
+                [embedType]: handler.compose(
+                  thisData,
+                  otherData,
+                  action === 'retain',
+                ),
+              };
+            }
+          }
+
+          // 合并样式
+          const attributes = AttributeMap.compose(
+            thisOp.attributes,
+            otherOp.attributes,
+            typeof thisOp.retain === 'number',
+          );
+          if (attributes) {
+            newOp.attributes = attributes;
+          }
+
+          delta.push(newOp);
+
+          // 优化：如果 other 剩下的都是 retain 且当前结果等于 last op
+          if (
+            !otherIter.hasNext() &&
+            isEqual(delta.ops[delta.ops.length - 1], newOp)
+          ) {
+            const rest = new Delta(thisIter.rest());
+            return delta.concat(rest).chop();
+          }
+        }
+        // case4: other 是 delete，this 是 retain/insert
+        else if (
+          typeof otherOp.delete === 'number' &&
+          (typeof thisOp.retain === 'number' ||
+            (typeof thisOp.retain === 'object' && thisOp.retain !== null))
+        ) {
+          delta.push(otherOp); // 直接保留删除
+        }
+      }
+    }
+
+    return delta.chop();
+  }
+```
+
+### 示例解析
+
+#### 1.插入 + 插入合并
+
+```typescript
+A = [{ insert: "Hello" }];
+B = [{ retain: 5 }, { insert: " World" }];
+A.compose(B) = [{ insert: "Hello World" }];
+```
+
+#### 2.retain + 样式变更合并
+
+```typescript
+A = [{ insert: 'Hello', attributes: { bold: true } }]
+B = [{ retain: 5, attributes: { color: 'red' } }]
+→ 结果：[{ insert: 'Hello', attributes: { bold: true, color: 'red' } }]
+```
+
+#### 3.delete 吞掉 insert/retain
+
+```typescript
+A = [{ insert: "abc" }];
+B = [{ delete: 2 }];
+A.compose(B) = [{ insert: "c" }];
+```
+
+### 总结：compose 是什么？
+
+> `compose` 是 Quill 协同中的“合并器”：把两个串行操作融合成一个整体。
+
+它确保你可以：
+
+- **精简操作序列**：如连续插入、多次 retain 合并，减小数据体积
+- **保留样式语义**：样式叠加时自动合并，保留变更
+- **确保等价性**：执行 compose(A, B) 后，得到的新 Delta 等价于「先执行 A 再执行 B」
+- **为 transform 提供配套支持**：许多协同编辑系统通过 `transform -> compose` 完成最终合并流程
+
+> **一句话总结**：
+>
+> **compose 是 Delta 的“时序融合器”：它把前后两个操作压成一个逻辑更紧凑的操作链，既保留语义，也优化执行。**
+
+## OT 三大核心方法的协同闭环
+
+至此，我们已经完整分析了 Delta 的三大核心方法：
+
+| 方法                | 职责说明                                |
+| ------------------- | --------------------------------------- |
+| `transform`         | 并发变更对齐，解决冲突                  |
+| `compose`           | 串行操作合并，压缩变更链                |
+| `transformPosition` | 光标 / 索引同步，确保用户意图位置不偏移 |
+
+接下来，我们将从整体角度总结这三大方法之间的协同关系、边界职责和配合机制，以及它们如何构成一个高度简洁、稳定、可扩展的 OT 算法设计。
+我们逐一拆解了 Quill Delta 中三大核心方法的实现：`transform`、`compose` 和 `transformPosition`。但它们不仅仅是三个孤立的工具，而是构成了一个相互配合、逻辑闭环的 OT 核心体系。
+
+> 本章将从设计视角出发，重新审视它们之间的边界职责与协同关系，理解 Quill 为何能在协同编辑中高效稳定地处理复杂变更。
+
+### 三大方法定位图
+
+```mermaid
+flowchart TD
+  Transform["transform<br/>(并发对齐)"]
+  Compose["compose<br/>(串行合并)"]
+  TransformPos["transformPosition<br/>(位置同步)"]
+
+  Transform --> Compose
+  Compose --> TransformPos
+  TransformPos --> Transform
+```
+
+| 方法                | 角色定义           | 使用场景                              |
+| ------------------- | ------------------ | ------------------------------------- |
+| `transform`         | **并发冲突解决器** | A 和 B 同时变更，调整 B 以适配 A      |
+| `compose`           | **串行变更合并器** | A → B → C 合并成一步                  |
+| `transformPosition` | **位置追踪转换器** | 光标或索引位置随着 Delta 变更进行更新 |
+
+### 使用场景闭环：完整协同流程
+
+以下是一个协同编辑的完整周期，三大方法如何联动：
+
+```typescript
+// 假设本地是 A，远端收到 B，想要应用到本地上
+const B_ = B.transform(A); // 并发操作变换
+const A_B = A.compose(B_); // 本地历史与远端合并
+const newCursor = B.transformPosition(cursor); // 调整光标位置
+```
+
+```mermaid
+sequenceDiagram
+  participant A as 本地用户 A
+  participant B as 并发用户 B
+  participant D as Delta 核心逻辑
+
+  A->>D: A 先提交操作 A
+  B->>D: 接收到远端操作 B
+  D->>D: B' = B.transform(A)
+  D->>D: AB = A.compose(B')
+  D->>D: newCursor = B.transformPosition(cursor)
+  D-->>A: 返回合并后 Delta AB + 更新后光标位置
+```
+
+这一整套流程几乎涵盖了 OT 协同编辑最核心的逻辑闭环。
+
+### 各方法设计哲学对比
+
+| 方法                | 输入                     | 输出   | 难点 / 特性                                |
+| ------------------- | ------------------------ | ------ | ------------------------------------------ |
+| `transform`         | Delta vs Delta           | Delta  | 按操作粒度对齐处理，需支持优先权逻辑       |
+| `compose`           | Delta + Delta            | Delta  | 融合 insert/retain/delete 与属性合并       |
+| `transformPosition` | Delta + index + 权限标记 | number | 偏移规则精细化，涉及插入位置是否偏移的问题 |
+
+### 三者配合设计亮点
+
+1. **解耦的职责划分**：每个方法关注单一问题（并发、串行、位置），降低互相耦合性。
+2. **统一的数据结构抽象**：三者都基于 `Delta` 和 `OpIterator`，复用逻辑，接口一致。
+3. **属性样式合并内聚**：`AttributeMap` 被统一封装在 `transform` 与 `compose` 内部，调用者无需关心格式细节。
+4. **嵌入对象兼容性设计**：支持 `handler.transform()` 插入自定义处理器（如公式、mention 等），保留扩展性。
+5. **自动游标管理**：通过 `OpIterator.next(length)` 精准切片，规避了 offset/剩余长度等显式状态地狱。
+
+```mermaid
+flowchart TD
+  A[Delta A 操作序列<br>OpIterator A] --> D[遍历 A 或 B]
+  B[Delta B 操作序列<br>OpIterator B] --> D
+
+  D --> E{当前 A 是否 insert?}
+  E -->|是| F["输出 insert 到结果<br>push(A.next())"]
+  E -->|否| G{当前 B 是否 insert?}
+  G -->|是| H["输出 insert 到结果<br>push(B.next())"]
+  G -->|否| I{"对齐最小长度<br>next(len)"}
+
+  I --> J[取出 A op（可能是 retain/delete）]
+  I --> K[取出 B op（可能是 retain/delete）]
+
+  J --> L{A 是 delete?}
+  L -->|是| M["输出 delete<br>push(A.op)"]
+  L -->|否| N{B 是 delete?}
+
+  N -->|是| O[跳过 A.op，保留 B delete]
+  N -->|否| P["两个 retain 合并样式<br>→ push(retain)"]
+
+  M --> Z
+  O --> Z
+  P --> Z
+  F --> Z
+  H --> Z
+
+  Z[进入下一轮循环]
+```
+
+### 总结：为什么 Delta 能成为协同标准？
+
+> 许多富文本编辑器（Quill、Tiptap、Slate 等）都采用了 Delta 或类似模型，根源就在于它的三板斧构成了完整、健壮的协同内核。
+
+| 能力维度   | Delta 的体现                                    |
+| ---------- | ----------------------------------------------- |
+| 精准裁切   | `OpIterator.next()` 提供可切片的迭代能力        |
+| 变更融合   | `compose()` 精简合并变更链                      |
+| 并发解决   | `transform()` 解决插入、删除、样式冲突          |
+| 光标定位   | `transformPosition()` 同步位置与用户意图        |
+| 可插拔扩展 | 支持嵌入类型注册 handler，自定义 transform 行为 |
+
+> **一句话总结终章：**
+>
+> **Delta 的 transform / compose / transformPosition 是协同编辑的“操作原子引擎”：它们共同构建了 OT 模型下稳定、高效、可扩展的核心处理框架。**
