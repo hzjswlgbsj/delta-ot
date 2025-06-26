@@ -107,12 +107,8 @@ export abstract class WebSocketClient {
 
   protected send(data: string) {
     if (!this.ws) return;
-    this.ws.send(data);
-  }
-
-  sendMsg(data: string) {
     this.resetSendHBTimer();
-    this.send(data);
+    this.ws.send(data);
   }
 
   protected onMessage(evt: MessageEvent) {

@@ -13,7 +13,7 @@ export class OTSession {
   private base: Delta;
 
   // 所有尚未被服务器 ack 的本地操作（按顺序）
-  private unacknowledgedOps: Delta[] = [];
+  private unAckOps: Delta[] = [];
 
   // 实际用户看到的当前文档内容（= base + unacknowledgedOps）
   private document: DocumentModel;
@@ -24,7 +24,7 @@ export class OTSession {
   constructor(userId: string, initialContent?: Delta) {
     this.userId = userId;
     this.base = initialContent ?? new Delta();
-    console.log(`[OTSession] 初始化文档: initialContent`);
+    console.log(`[OTSession] 初始化文档: ${this.base}`);
     this.document = new DocumentModel(this.base);
   }
 
@@ -42,7 +42,8 @@ export class OTSession {
 
   /** 本地提交：立即 apply 到文档，同时记录为未确认状态 */
   commitLocal(op: Delta): void {
-    this.unacknowledgedOps.push(op);
+    console.log(`[OTSession] commitLocal: ${JSON.stringify(op)}`);
+    this.unAckOps.push(op);
     this.base = this.base.compose(op);
     this.document.apply(op); // 增量更新，无需 rebuild
   }
@@ -51,7 +52,7 @@ export class OTSession {
   receiveRemote(remoteOp: Delta) {
     let transformed = remoteOp;
 
-    this.unacknowledgedOps.forEach((localOp) => {
+    this.unAckOps.forEach((localOp) => {
       transformed = OTEngine.transform(localOp, transformed);
     });
 
@@ -65,14 +66,14 @@ export class OTSession {
    * TODO: 后续支持按 op-id 精确 ack
    */
   ack(): void {
-    this.unacknowledgedOps.shift();
+    this.unAckOps.shift();
     this.rebuildDocument();
   }
 
   /** 重建视图文档：= base + 所有未确认操作 */
   private rebuildDocument(): void {
     let composed = this.base;
-    for (const op of this.unacknowledgedOps) {
+    for (const op of this.unAckOps) {
       composed = composed.compose(op);
     }
     this.document.setContents(composed);
@@ -94,7 +95,7 @@ export class OTSession {
   }
 
   destroy(): void {
-    this.unacknowledgedOps = [];
+    this.unAckOps = [];
     this.base = new Delta();
     this.document = new DocumentModel();
     this.remoteChangeListeners = [];

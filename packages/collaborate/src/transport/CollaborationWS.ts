@@ -58,15 +58,8 @@ export class CollaborationWS extends WebSocketClient {
   private sendJoinCmd(isReconnect: boolean = false) {
     // 正常进入和重连进入服务端可能有不同的处理逻辑
     const joinReason = isReconnect ? JoinReason.RECONNECT : JoinReason.NORMAL;
-    this.sendCmd({
-      type: SendCommandType.JOIN,
-      documentId: this.documentId,
-      sequence: this.sequence,
-      timestamp: Date.now(),
-      userId: this.userInfo.userId,
-      data: {
-        loginReason: joinReason,
-      },
+    this.sendCmd(SendCommandType.JOIN, {
+      loginReason: joinReason,
     });
   }
 
@@ -107,13 +100,7 @@ export class CollaborationWS extends WebSocketClient {
 
     // 然后发送索要关键帧的命令
     // 这里的关键帧是指告诉服务端，当前客户端需要获取最新的文档数据，这里指的是 delta 的 ops
-    this.sendCmd({
-      type: SendCommandType.KEY_FRAME,
-      documentId: this.documentId,
-      sequence: this.sequence,
-      timestamp: Date.now(),
-      userId: this.userInfo.userId,
-    });
+    this.sendCmd(SendCommandType.KEY_FRAME);
   };
 
   onClosed = () => {
@@ -152,11 +139,22 @@ export class CollaborationWS extends WebSocketClient {
     this.send(this.encodeCmd(c));
   }
 
-  sendCmd(cmd: ClientMessage<any>) {
+  sendCmd(type: SendCommandType, data?: any) {
     // 重置发送心跳的timer
     this.resetSendHBTimer();
-
+    const cmd = this.generateCmd(type, data);
     this.send(this.encodeCmd(cmd));
+  }
+
+  generateCmd(type: SendCommandType, data?: any): ClientMessage<any> {
+    return {
+      type,
+      data,
+      documentId: this.documentId,
+      userId: this.userInfo.userId,
+      sequence: this.sequence,
+      timestamp: Date.now(),
+    };
   }
 
   destroy(): void {

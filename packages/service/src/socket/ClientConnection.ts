@@ -41,13 +41,15 @@ export class ClientConnection extends BaseSocketConnection {
       case MessageType.KEY_FRAME:
         this.handleKeyFrame(cmd);
         break;
+      case MessageType.OP:
+        this.handleOp(cmd);
+        break;
       default:
         console.warn("⚠️ Unknown message type:", cmd.type);
     }
   }
 
   private handleHeartbeat(data: HeartbeatPayload) {
-    console.log("💓 Received heartbeat:", data);
     if (data.heartbeatType !== HeartbeatType.CLIENT) return;
     this.resetRecvHBTimer();
     this.sendHeartbeat();
@@ -65,5 +67,12 @@ export class ClientConnection extends BaseSocketConnection {
       `📦 KeyFrame request from ${cmd.userId} for doc ${cmd.documentId}`
     );
     // TODO: 实际发送关键帧内容
+  }
+
+  private handleOp(cmd: ClientMessage<KeyFramePayload>) {
+    console.log(
+      `📦 Op request from ${cmd.userId} for doc ${cmd.documentId}`,
+      JSON.stringify(cmd)
+    );
   }
 }

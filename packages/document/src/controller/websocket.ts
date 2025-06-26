@@ -1,5 +1,6 @@
-import { CollaborationWS } from "@delta-ot/collaborate";
+import { CollaborationWS, SendCommandType } from "@delta-ot/collaborate";
 import { WebsocketControllerOptions } from "../types/base";
+import Delta from "quill-delta";
 
 export class WebsocketController {
   private ws!: CollaborationWS;
@@ -37,6 +38,13 @@ export class WebsocketController {
     const { userInfo, documentId } = this.options;
 
     this.ws = new CollaborationWS(documentId, userInfo, { url }, this);
+  }
+
+  sendCmd(delta: Delta) {
+    this.ws.sendCmd(SendCommandType.OP, {
+      type: SendCommandType.OP,
+      data: delta,
+    });
   }
 
   destroy() {
