@@ -18,24 +18,36 @@ export class OTSession {
   // 实际用户看到的当前文档内容（= base + unacknowledgedOps）
   private document: DocumentModel;
 
+  // 远端变更监听器
+  private remoteChangeListeners: ((delta: Delta) => void)[] = [];
+
   constructor(userId: string, initialContent?: Delta) {
     this.userId = userId;
     this.base = initialContent ?? new Delta();
+    console.log(`[OTSession] 初始化文档: initialContent`);
     this.document = new DocumentModel(this.base);
   }
 
   /**
-   * 本地提交：立即 apply 到文档，同时记录为未确认状态
+   * 注册远端变更回调
    */
+  onRemoteChange(cb: (delta: Delta) => void) {
+    this.remoteChangeListeners.push(cb);
+  }
+
+  /** 通知外部有远端变更 */
+  private notifyRemoteChange(delta: Delta) {
+    this.remoteChangeListeners.forEach((cb) => cb(delta));
+  }
+
+  /** 本地提交：立即 apply 到文档，同时记录为未确认状态 */
   commitLocal(op: Delta): void {
     this.unacknowledgedOps.push(op);
     this.base = this.base.compose(op);
     this.document.apply(op); // 增量更新，无需 rebuild
   }
 
-  /**
-   * 接收远端操作，并 transform 后合入 base，再叠加本地未 ack 的操作
-   */
+  /** 接收远端操作，并 transform 后合入 base，再叠加本地未 ack 的操作 */
   receiveRemote(remoteOp: Delta) {
     let transformed = remoteOp;
 
@@ -45,6 +57,7 @@ export class OTSession {
 
     this.base = this.base.compose(transformed);
     this.rebuildDocument();
+    this.notifyRemoteChange(transformed); // 通知监听者
   }
 
   /**
@@ -56,9 +69,7 @@ export class OTSession {
     this.rebuildDocument();
   }
 
-  /**
-   * 重建视图文档：= base + 所有未确认操作
-   */
+  /** 重建视图文档：= base + 所有未确认操作 */
   private rebuildDocument(): void {
     let composed = this.base;
     for (const op of this.unacknowledgedOps) {
@@ -67,12 +78,11 @@ export class OTSession {
     this.document.setContents(composed);
   }
 
-  /**
-   * 直接应用远端已经 transform 过的操作（跳过 transform 流程）
-   */
+  /** 直接应用远端已经 transform 过的操作（跳过 transform 流程） */
   apply(op: Delta): void {
     this.base = this.base.compose(op);
     this.document.apply(op);
+    this.notifyRemoteChange(op); // 同样通知外部
   }
 
   getDocument(): DocumentModel {
@@ -83,12 +93,10 @@ export class OTSession {
     return this.userId;
   }
 
-  /**
-   * 释放资源，清理状态
-   */
   destroy(): void {
     this.unacknowledgedOps = [];
     this.base = new Delta();
     this.document = new DocumentModel();
+    this.remoteChangeListeners = [];
   }
 }

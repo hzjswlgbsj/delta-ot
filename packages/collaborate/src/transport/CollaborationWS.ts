@@ -1,8 +1,8 @@
 import {
   ReceiveCommandType,
   JoinReason,
-  CMD,
-  Message,
+  ClientMessage,
+  ServiceMessage,
   WebsocketConfig,
   SendCommandType,
   HeartbeatType,
@@ -11,17 +11,12 @@ import {
 import { WebSocketClient } from "./WebSocketClient";
 import { safeJsonParse } from "../utils/common";
 
-/** 不太需要具体业务关心的通用信令 */
-enum client_ctrl_cmd {
-  HEARTBEAT = 1,
-  KEY_FRAME = 21,
-  LOGIN = 100,
-}
-
 /** 与客户端通信心跳过程中没有收到任何回应超过 20s 时，就会认为心跳异常，进而踢出用户 */
 const HEARTBEAT_TIMEOUT = 1000 * 20;
 
 export class CollaborationWS extends WebSocketClient {
+  private _sequence = 0;
+
   constructor(
     private documentId: string,
     private userInfo: UserInfo,
@@ -31,17 +26,32 @@ export class CollaborationWS extends WebSocketClient {
       onConnected: () => unknown;
       onReconnect: () => unknown;
       onReconnected: () => unknown;
-      dealCmd: (msg: Message) => unknown;
+      dealCmd: (msg: ServiceMessage<any>) => unknown;
       onNotRecMsgTimeout: () => unknown;
     }
   ) {
     super(config);
   }
 
-  notRecMsgTimer: ReturnType<typeof setTimeout> | null = null;
+  get sequence() {
+    return this._sequence;
+  }
 
-  private encodeCmd(cmd: CMD) {
+  set sequence(sequence: number) {
+    this._sequence = sequence;
+  }
+
+  private notRecMsgTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private encodeCmd(cmd: ClientMessage<any>) {
     return JSON.stringify(cmd);
+  }
+
+  /**
+   * 当前我们没有做加密混淆什么的，直接使用的 JSON 字符串所以这里的解密函数暂时就是 JSON.parse
+   */
+  decodeCmd(data: string): ServiceMessage<any> {
+    return safeJsonParse(data);
   }
 
   /** 发送进入文档命令，实际上是表示当前用户进入到这篇文档中了 */
@@ -50,9 +60,11 @@ export class CollaborationWS extends WebSocketClient {
     const joinReason = isReconnect ? JoinReason.RECONNECT : JoinReason.NORMAL;
     this.sendCmd({
       type: SendCommandType.JOIN,
+      documentId: this.documentId,
+      sequence: this.sequence,
+      timestamp: Date.now(),
+      userId: this.userInfo.userId,
       data: {
-        userId: this.userInfo.userId,
-        documentId: this.documentId,
         loginReason: joinReason,
       },
     });
@@ -60,8 +72,6 @@ export class CollaborationWS extends WebSocketClient {
 
   onReceiveMsg = (event: MessageEvent) => {
     const payload: string = event.data;
-    console.info("[CollaborationWS]", "Received from server:", event.data);
-
     // 重置接收心跳的定时器
     this.resetRecvHBTimer();
     if (this.notRecMsgTimer) {
@@ -72,22 +82,21 @@ export class CollaborationWS extends WebSocketClient {
       this.msgConsumer.onNotRecMsgTimeout();
     }, HEARTBEAT_TIMEOUT);
 
-    const { type, data } = this.decodeCmd(payload);
+    const cmd = this.decodeCmd(payload);
 
     /** 这里只会显式的处理通用的信令类型比如心跳，其他业务相关的信令会交给外部实例处理 */
-    switch (type) {
+    switch (cmd.type) {
       case ReceiveCommandType.HEARTBEAT:
-        console.log("[CollaborationWS]", "Received heartbeat:", data);
-
         // 客户端如果收到心跳后会检查心跳类型是不是 Client，如果是证明是客户端自己发送的心跳被服务端回过来了，那么这个消息称之为 Ack
-        const isAck = data.heartbeatType === HeartbeatType.CLIENT;
+        const isAck = cmd.data.heartbeatType === HeartbeatType.CLIENT;
         if (!isAck) {
           // 服务端发送过来的,需要将原文回复
-          this.sendHeartbeat({ type, data });
+          this.sendHeartbeat(cmd);
         }
         break;
       default:
-        this.msgConsumer.dealCmd({ type, data });
+        console.log("[CollaborationWS]", "Received message:", payload);
+        this.msgConsumer.dealCmd(cmd);
         break;
     }
   };
@@ -100,10 +109,10 @@ export class CollaborationWS extends WebSocketClient {
     // 这里的关键帧是指告诉服务端，当前客户端需要获取最新的文档数据，这里指的是 delta 的 ops
     this.sendCmd({
       type: SendCommandType.KEY_FRAME,
-      data: {
-        userId: this.userInfo.userId,
-        documentId: this.documentId,
-      },
+      documentId: this.documentId,
+      sequence: this.sequence,
+      timestamp: Date.now(),
+      userId: this.userInfo.userId,
     });
   };
 
@@ -143,18 +152,11 @@ export class CollaborationWS extends WebSocketClient {
     this.send(this.encodeCmd(c));
   }
 
-  sendCmd(cmd: CMD) {
+  sendCmd(cmd: ClientMessage<any>) {
     // 重置发送心跳的timer
     this.resetSendHBTimer();
 
     this.send(this.encodeCmd(cmd));
-  }
-
-  /**
-   * 当前我们没有做加密混淆什么的，直接使用的 JSON 字符串所以这里的解密函数暂时就是 JSON.parse
-   */
-  decodeCmd(data: string): Message {
-    return safeJsonParse(data);
   }
 
   destroy(): void {

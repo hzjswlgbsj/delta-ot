@@ -2,7 +2,8 @@
   "name": "@delta-ot/document",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/main.ts",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,12 +12,22 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^24.0.4",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vitejs/plugin-vue-jsx": "^3.1.0",
+    "@vue/babel-plugin-jsx": "^1.4.0",
+    "less": "^4.3.0",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^5.4.19",
+    "vue-tsc": "^2.2.10"
   },
   "dependencies": {
     "@delta-ot/collaborate": "workspace:*",
+    "axios": "^1.10.0",
+    "pinia": "^3.0.3",
     "quill": "2",
-    "quill-delta": "^5.1.0"
+    "quill-delta": "^5.1.0",
+    "vue": "^3.5.17",
+    "vue-router": "^4.5.1"
   }
 }

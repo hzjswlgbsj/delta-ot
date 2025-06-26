@@ -19,35 +19,56 @@ export enum HeartbeatType {
 }
 
 /** 客户端发送的命令 */
-export type CMD = {
+export type ClientMessage<T> = {
   type: SendCommandType;
-  // 这里先试用 any，但实际上最好是每个 Type 都有对应的 data 数据结构定义
-  data?: any;
+  timestamp: number;
+  documentId: string;
+  userId: string;
+  sequence: number;
+  data?: T;
 };
 
 /** 接收的信令 */
-export type Message = {
+export type ServiceMessage<T> = {
   type: ReceiveCommandType;
-  // 这里先试用 any，但实际上最好是每个 Type 都有对应的 data 数据结构定义
-  data: any;
+  timestamp: number;
+  documentId: string;
+  userId: string;
+  sequence: number;
+  data: T;
 };
-
 /** 接收的信令类型 */
 export enum ReceiveCommandType {
-  // 心跳
+  // 服务端心跳响应（也可作为 push 的心跳包）
   HEARTBEAT = "heartbeat",
-  // 有其他人进入文档
+  // 有其他人加入文档
   JOINED = "joined",
+  // 有用户离开
+  LEFT = "left",
+  // 接收到操作（如 Delta diff）
+  REMOTE_OP = "remote_op",
+  // 接收到关键帧（用于首次进入或重连）
+  KEY_FRAME = "key_frame",
+  // 当前文档的用户列表
+  USER_LIST = "user_list",
+  // 服务端拒绝请求（如无权限、文档不存在等）
+  REJECTED = "rejected",
 }
 
 /** 客户端发送的命令类型 */
 export enum SendCommandType {
-  // 心跳
+  // 客户端心跳
   HEARTBEAT = "heartbeat",
-  // 进入文档
+  // 加入文档
   JOIN = "join",
-  // 关键帧
+  // 发送关键帧（包含完整内容）
   KEY_FRAME = "key_frame",
+  // 发送操作（Delta diff）
+  OP = "op",
+  // 离开文档
+  LEAVE = "leave",
+  // 请求当前文档状态（适用于重连）
+  REQUEST_DOC = "request_doc",
 }
 
 /** 进入原因 1000-正常进入 1001-重连进入 */

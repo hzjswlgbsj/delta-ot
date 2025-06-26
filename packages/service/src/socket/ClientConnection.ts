@@ -30,19 +30,19 @@ export class ClientConnection extends BaseSocketConnection {
     this.onClose();
   }
 
-  protected onReceiveMessage(msg: ClientMessage): void {
-    switch (msg.type) {
+  protected onReceiveMessage(cmd: ClientMessage<any>): void {
+    switch (cmd.type) {
       case MessageType.HEARTBEAT:
-        this.handleHeartbeat(msg.data);
+        this.handleHeartbeat(cmd.data);
         break;
       case MessageType.JOIN:
-        this.handleJoin(msg.data);
+        this.handleJoin(cmd.data);
         break;
       case MessageType.KEY_FRAME:
-        this.handleKeyFrame(msg.data);
+        this.handleKeyFrame(cmd);
         break;
       default:
-        console.warn("⚠️ Unknown message type:", msg.type);
+        console.warn("⚠️ Unknown message type:", cmd.type);
     }
   }
 
@@ -60,9 +60,9 @@ export class ClientConnection extends BaseSocketConnection {
     // TODO: 后续这里可以记录连接状态、广播等
   }
 
-  private handleKeyFrame(data: KeyFramePayload) {
+  private handleKeyFrame(cmd: ClientMessage<KeyFramePayload>) {
     console.log(
-      `📦 KeyFrame request from ${data.userId} for doc ${data.documentId}`
+      `📦 KeyFrame request from ${cmd.userId} for doc ${cmd.documentId}`
     );
     // TODO: 实际发送关键帧内容
   }

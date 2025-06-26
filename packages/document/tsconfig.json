@@ -1,9 +1,25 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": [
+      "vite/client"
+    ],
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "paths": {
-      "@delta-ot/collaborate/*": [
-        "../../collaborate/dist/*"
+      "@/*": [
+        "src/*"
       ]
     }
+    // "paths": {
+    //   "@delta-ot/collaborate/*": [
+    //     "../../collaborate/dist/*"
+    //   ]
+    // }
   }
 }

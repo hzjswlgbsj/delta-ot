@@ -12,7 +12,11 @@ export enum HeartbeatType {
 
 export interface ClientMessage<T = any> {
   type: MessageType;
-  data: T;
+  timestamp: number;
+  documentId: string;
+  userId: string;
+  sequence: number;
+  data?: T;
 }
 
 export interface JoinPayload {
