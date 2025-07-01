@@ -3,83 +3,70 @@ import { User } from "../db/models/User";
 import { signToken } from "../utils/jwt";
 import { getBody } from "../utils/body";
 import { RegisterBody, LoginBody, UpdateUserBody } from "../types/user";
+import { success, fail } from "../utils/response";
 
-// 注册
 export async function register(ctx: Context) {
-  const { userId, userName, password, avatar } = getBody<RegisterBody>(ctx);
+  const body = getBody<RegisterBody>(ctx);
+  const { userId, userName, password, avatar } = body;
 
   const existing = await User.findByPk(userId);
   if (existing) {
-    ctx.status = 400;
-    ctx.body = { success: false, message: "User already exists" };
+    ctx.body = fail("User already exists", 1001);
     return;
   }
 
-  const newUser = await User.create({ userId, userName, password, avatar });
-  ctx.body = { success: true, data: newUser };
+  await User.create({ userId, userName, password, avatar });
+  ctx.body = success(null, "User registered successfully");
 }
 
-// 登录
 export async function login(ctx: Context) {
-  const { userId, password } = getBody<LoginBody>(ctx);
+  const body = getBody<LoginBody>(ctx);
+  const { userId, password } = body;
 
   const user = await User.findByPk(userId);
   if (!user || user.password !== password) {
-    ctx.status = 401;
-    ctx.body = { success: false, message: "Invalid credentials" };
+    ctx.body = fail("Invalid credentials", 1002);
     return;
   }
 
   const token = signToken({ userId });
-  ctx.body = { success: true, data: { token, user } };
+  ctx.body = success({ token }, "Login successful");
 }
 
-// 获取单个用户信息
 export async function getUserInfo(ctx: Context) {
-  const { userId } = ctx.params;
+  const userId = ctx.params.userId;
   const user = await User.findByPk(userId);
-  console.log("获取用户信息", user);
   if (!user) {
-    ctx.status = 404;
-    ctx.body = { success: false, message: "User not found" };
+    ctx.body = fail("User not found", 1003);
     return;
   }
-  ctx.body = { success: true, data: user };
+  ctx.body = success(user);
 }
 
-// 更新用户
 export async function updateUser(ctx: Context) {
-  const { userId } = ctx.params;
-  const updates = getBody<UpdateUserBody>(ctx);
-
+  const userId = ctx.params.userId;
+  const body = getBody<UpdateUserBody>(ctx);
   const user = await User.findByPk(userId);
   if (!user) {
-    ctx.status = 404;
-    ctx.body = { success: false, message: "User not found" };
+    ctx.body = fail("User not found", 1004);
     return;
   }
-
-  await user.update(updates);
-  ctx.body = { success: true, data: user };
+  await user.update(body);
+  ctx.body = success(null, "User updated successfully");
 }
 
-// 删除用户
 export async function deleteUser(ctx: Context) {
-  const { userId } = ctx.params;
+  const userId = ctx.params.userId;
   const user = await User.findByPk(userId);
   if (!user) {
-    ctx.status = 404;
-    ctx.body = { success: false, message: "User not found" };
+    ctx.body = fail("User not found", 1005);
     return;
   }
-
   await user.destroy();
-  ctx.body = { success: true };
+  ctx.body = success(null, "User deleted successfully");
 }
 
-// 获取所有用户
 export async function getAllUsers(ctx: Context) {
   const users = await User.findAll();
-  console.log("获取所有用户", users);
-  ctx.body = { success: true, data: users };
+  ctx.body = success(users);
 }
