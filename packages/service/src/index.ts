@@ -8,7 +8,15 @@ import { PORT } from "./config/env";
 const app = new Koa();
 
 // ✅ 中间件顺序非常重要
-app.use(bodyParser());
+app.use(
+  bodyParser({
+    enableTypes: ["json", "form"],
+    jsonLimit: "5mb",
+    onerror: (err, ctx) => {
+      ctx.throw(422, "Invalid JSON");
+    },
+  })
+);
 app.use(router.routes());
 app.use(router.allowedMethods());
 

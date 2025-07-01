@@ -16,12 +16,14 @@
     "koa-bodyparser": "^4.4.1",
     "koa-router": "^13.0.1",
     "mysql2": "^3.14.1",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@types/koa-bodyparser": "^4.3.12",
     "@types/sequelize": "^4.28.20",
+    "@types/uuid": "^10.0.0",
     "tsx": "^4.20.3"
   }
 }

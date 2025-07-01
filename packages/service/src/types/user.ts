@@ -1,12 +1,12 @@
 export interface RegisterBody {
-  userId: string;
   userName: string;
+  loginName: string;
   password: string;
   avatar?: string;
 }
 
 export interface LoginBody {
-  userId: string;
+  loginName: string;
   password: string;
 }
 

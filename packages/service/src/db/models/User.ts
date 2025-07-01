@@ -24,7 +24,7 @@ User.init(
       allowNull: false,
       field: "user_id",
     },
-    username: {
+    userName: {
       type: DataTypes.STRING,
       allowNull: false,
       field: "username",
@@ -38,6 +38,12 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
       field: "avatar",
+    },
+    loginName: {
+      type: DataTypes.STRING,
+      unique: true,
+      allowNull: false,
+      field: "login_name",
     },
     createdAt: {
       type: DataTypes.DATE,
