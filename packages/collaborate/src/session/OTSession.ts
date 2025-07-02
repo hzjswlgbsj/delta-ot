@@ -24,7 +24,6 @@ export class OTSession {
   constructor(userId: string, initialContent?: Delta) {
     this.userId = userId;
     this.base = initialContent ?? new Delta();
-    console.log(`[OTSession] 初始化文档: ${this.base}`);
     this.document = new DocumentModel(this.base);
   }
 
@@ -58,7 +57,9 @@ export class OTSession {
 
     this.base = this.base.compose(transformed);
     this.rebuildDocument();
-    this.notifyRemoteChange(transformed); // 通知监听者
+
+    // 通知上层 UI 更新
+    this.notifyRemoteChange(transformed);
   }
 
   /**

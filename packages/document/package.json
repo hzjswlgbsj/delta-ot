@@ -24,6 +24,7 @@
   "dependencies": {
     "@delta-ot/collaborate": "workspace:*",
     "axios": "^1.10.0",
+    "dayjs": "^1.11.13",
     "pinia": "^3.0.3",
     "quill": "2",
     "quill-delta": "^5.1.0",

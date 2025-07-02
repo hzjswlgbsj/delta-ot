@@ -2,20 +2,16 @@ import { defineComponent, onMounted, ref } from "vue";
 import { ListItem } from "@/components";
 import styles from "./style.module.less";
 import { router } from "@/router";
+import { getFiles } from "@/services/file";
 
 export default defineComponent({
   setup() {
     const files = ref([]);
 
     onMounted(async () => {
-      const res = await fetch("/api/file/list", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      const json = await res.json();
-      if (json.code === 0) {
-        files.value = json.data;
+      const res = await getFiles();
+      if (res.code === 0) {
+        files.value = res.data;
       }
     });
 
@@ -28,7 +24,7 @@ export default defineComponent({
         {files.value.map((file: any) => (
           <ListItem
             key={file.guid}
-            file={file.name}
+            file={file}
             onClick={() => handleClick(file.guid)}
           />
         ))}

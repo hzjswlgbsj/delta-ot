@@ -1,7 +1,8 @@
 import { defineComponent, ref } from "vue";
 import { useRouter } from "vue-router";
 import styles from "./style.module.less";
-// import { login } from "@/services/user";
+import { login } from "@/services/user";
+import { useUserStore } from "@/store/useUserStore";
 
 export default defineComponent({
   setup() {
@@ -9,6 +10,7 @@ export default defineComponent({
     const loginName = ref("");
     const password = ref("");
     const errorMsg = ref("");
+    const store = useUserStore();
 
     const handleLogin = async () => {
       if (!loginName.value || !password.value) {
@@ -16,17 +18,16 @@ export default defineComponent({
         return;
       }
 
-      // try {
-      //   const { token } = await login({
-      //     loginName: loginName.value,
-      //     password: password.value,
-      //   });
-      //   localStorage.setItem("token", token);
-      //   localStorage.setItem("loginName", loginName.value);
-      //   router.push("/");
-      // } catch (err: any) {
-      //   errorMsg.value = err?.msg || "登录失败";
-      // }
+      const res = await login(loginName.value, password.value);
+      if (res.code !== 0) {
+        errorMsg.value = res.msg || "登录失败";
+        return;
+      }
+
+      const { token, userInfo } = res.data;
+      localStorage.setItem("token", token);
+      store.setUser(userInfo);
+      router.push("/");
     };
 
     return () => (

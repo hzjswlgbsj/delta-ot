@@ -23,11 +23,11 @@ export class ClientConnection extends BaseSocketConnection {
   }
 
   protected onConnected(): void {
-    console.log("✅ Client connected");
+    console.log("Client connected");
   }
 
   protected onDisconnected(): void {
-    console.log(`❌ Client disconnected: ${this.userId}`);
+    console.log(`Client disconnected: ${this.userId}`);
     if (this.documentId) {
       documentSessionManager.removeClientFromDocument(this.documentId, this);
     }
@@ -44,7 +44,7 @@ export class ClientConnection extends BaseSocketConnection {
         this.handleHeartbeat(cmd.data);
         break;
       case MessageType.JOIN:
-        this.handleJoin(cmd.data);
+        this.handleJoin(cmd);
         break;
       case MessageType.KEY_FRAME:
         this.handleKeyFrame(cmd);
@@ -63,12 +63,17 @@ export class ClientConnection extends BaseSocketConnection {
     this.sendHeartbeat();
   }
 
-  private async handleJoin(data: JoinPayload) {
-    const { userId, documentId } = data;
-    this.userId = data.userId;
-    this.documentId = data.documentId;
+  private async handleJoin(cmd: ClientMessage<JoinPayload>) {
+    const { userId, documentId } = cmd;
+
+    this.userId = userId;
+    this.documentId = documentId;
     // 从缓存中获取 token，检查 token 是否有效
     const token = loggedInUserStore.getToken(userId) ?? "";
+    if (!token) {
+      this.sendError(ErrorCode.INVALID_TOKEN, "Token not found for user");
+      return;
+    }
     try {
       const decoded = verifyToken(token);
 
@@ -101,11 +106,8 @@ export class ClientConnection extends BaseSocketConnection {
       return;
     }
 
-    this.userId = userId;
-    this.documentId = documentId;
     documentSessionManager.addClientToDocument(documentId, this);
-
-    console.log(`👤 User ${userId} joined document ${documentId}`);
+    console.log(`User ${userId} joined document ${documentId}`);
   }
 
   private handleKeyFrame(cmd: ClientMessage<KeyFramePayload>) {
@@ -113,7 +115,7 @@ export class ClientConnection extends BaseSocketConnection {
     const session = documentSessionManager.getSession(documentId);
 
     if (!session) {
-      console.warn(`📭 No session found for document ${documentId}`);
+      console.warn(`No session found for document ${documentId}`);
       return;
     }
 
@@ -137,10 +139,6 @@ export class ClientConnection extends BaseSocketConnection {
   }
 
   private handleOp(cmd: ClientMessage) {
-    console.log(
-      `📦 Op request from ${cmd.userId} for doc ${cmd.documentId}`,
-      JSON.stringify(cmd)
-    );
     documentSessionManager.handleClientOp(cmd, this);
   }
 

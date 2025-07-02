@@ -42,13 +42,14 @@ export enum ReceiveCommandType {
   // 服务端心跳响应（也可作为 push 的心跳包）
   HEARTBEAT = "heartbeat",
   // 有其他人加入文档
-  JOINED = "joined",
-  // 有用户离开
-  LEFT = "left",
-  // 接收到操作（如 Delta diff）
-  REMOTE_OP = "remote_op",
+  JOIN = "join",
   // 接收到关键帧（用于首次进入或重连）
   KEY_FRAME = "key_frame",
+  // 接收到操作（如 Delta diff）
+  OP = "op",
+  ERROR = "error",
+  // 有用户离开
+  LEFT = "left",
   // 当前文档的用户列表
   USER_LIST = "user_list",
   // 服务端拒绝请求（如无权限、文档不存在等）
@@ -78,7 +79,11 @@ export enum JoinReason {
 }
 
 export type UserInfo = {
+  id: number;
   userId: string;
   userName: string;
-  avatar?: string;
+  avatar: string;
+  loginName: string;
+  createdAt: string;
+  updatedAt: string;
 };

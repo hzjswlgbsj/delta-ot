@@ -4,7 +4,7 @@ import { User } from "../models/User";
 const sync = async () => {
   await initDB();
   await sequelize.sync({ alter: true });
-  console.log("✅ DB synced");
+  console.log("DB synced");
   process.exit(0);
 };
 

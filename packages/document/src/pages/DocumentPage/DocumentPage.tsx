@@ -4,10 +4,6 @@ import styles from "./style.module.less";
 
 export default defineComponent({
   setup() {
-    return () => (
-      <div class={styles.documentWrapper}>
-        <Document />
-      </div>
-    );
+    return () => <Document />;
   },
 });

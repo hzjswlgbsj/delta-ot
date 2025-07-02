@@ -1,9 +1,25 @@
 export type UserInfo = {
+  id: number;
   userId: string;
   userName: string;
-  avatar?: string;
+  avatar: string;
+  loginName: string;
+  createdAt: string;
+  updatedAt: string;
 };
-export interface WebsocketControllerOptions {
+export type WebsocketControllerOptions = {
   userInfo: UserInfo;
-  documentId: string;
-}
+  guid: string;
+};
+
+export type File = {
+  id: number;
+  guid: string;
+  name: string;
+  content: string;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
+  authorId: string;
+  updater: string;
+};

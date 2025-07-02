@@ -70,6 +70,7 @@ class LoggedInUserStore {
     const now = Date.now();
     for (const [userId, session] of this.store.entries()) {
       if (session.expireAt <= now) {
+        console.log(`cleanup expired token for user ${userId}`);
         this.store.delete(userId);
       }
     }

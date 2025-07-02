@@ -36,6 +36,6 @@ export function safeJsonParse(target: string, fallback: any = null) {
   try {
     return JSON.parse(target);
   } catch (err) {
-    return fallback;
+    return fallback ?? {};
   }
 }

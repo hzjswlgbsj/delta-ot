@@ -10,8 +10,8 @@ export const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
 export const initDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log("✅ Sequelize connected to MySQL.");
+    console.log("Sequelize connected to MySQL.");
   } catch (error) {
-    console.error("❌ Failed to connect to MySQL:", error);
+    console.error("Failed to connect to MySQL:", error);
   }
 };

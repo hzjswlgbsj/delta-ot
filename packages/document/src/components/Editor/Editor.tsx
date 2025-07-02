@@ -16,10 +16,8 @@ export default defineComponent({
   props: {
     /** 初始内容（全文） */
     value: Object as PropType<Delta | undefined>,
-
     /** 增量变更（来自外部） */
     updates: Object as PropType<Delta | undefined>,
-
     /** 本地变更上抛 */
     onChange: Function as PropType<(delta: Delta) => void>,
   },
@@ -34,7 +32,38 @@ export default defineComponent({
         quill = new Quill(editorRef.value, {
           theme: "snow",
           modules: {
-            toolbar: [["bold", "italic"], [{ header: [1, 2, false] }]],
+            toolbar: [
+              ["bold", "italic", "underline", "strike"],
+              ["blockquote", "code-block"],
+              [{ header: 1 }, { header: 2 }],
+              [{ list: "ordered" }, { list: "bullet" }],
+              [{ script: "sub" }, { script: "super" }],
+              [{ indent: "-1" }, { indent: "+1" }],
+              [{ direction: "rtl" }],
+              [
+                {
+                  size: [
+                    "9pt",
+                    "10pt",
+                    "11pt",
+                    "12pt",
+                    "14pt",
+                    "16pt",
+                    "18pt",
+                    "22pt",
+                    "24pt",
+                    "30pt",
+                    "36pt",
+                  ],
+                },
+              ],
+              [{ header: [1, 2, 3, 4, 5, 6, false] }],
+              [{ color: [] }, { background: [] }],
+              [{ font: [] }],
+              [{ align: [] }],
+              ["link", "image", "video", "formula"],
+              ["clean"],
+            ],
           },
         });
 
@@ -57,6 +86,18 @@ export default defineComponent({
         if (quill && delta) {
           isApplyingExternal = true;
           quill.updateContents(delta, "silent");
+          isApplyingExternal = false;
+        }
+      },
+      { deep: true }
+    );
+
+    watch(
+      () => props.value,
+      (delta) => {
+        if (quill && delta) {
+          isApplyingExternal = true;
+          quill.setContents(props.value, "silent");
           isApplyingExternal = false;
         }
       },

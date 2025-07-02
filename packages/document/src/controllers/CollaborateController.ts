@@ -1,25 +1,25 @@
 import Delta from "quill-delta";
 import { UserInfo } from "../types/base";
-import type { WebsocketController } from "./websocket";
+import type { WebsocketController } from "./WebsocketController";
 import { OTSession } from "@delta-ot/collaborate";
 
 interface CollaborateInitConfig {
   userInfo: UserInfo;
-  documentId: string;
+  guid: string;
   ws: WebsocketController;
 }
 
 export class CollaborateController {
   private ws!: WebsocketController;
-  private otSession!: OTSession;
+  public otSession!: OTSession;
   private userInfo!: UserInfo;
-  private documentId!: string;
+  private guid!: string;
   private remoteChangeCb: ((delta: Delta) => void) | null = null;
 
   init(config: CollaborateInitConfig, initialContent?: Delta) {
-    const { userInfo, documentId, ws } = config;
+    const { userInfo, guid, ws } = config;
     this.userInfo = userInfo;
-    this.documentId = documentId;
+    this.guid = guid;
     this.ws = ws;
 
     // 初始化 WebSocket 连接

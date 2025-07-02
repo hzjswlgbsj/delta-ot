@@ -4,10 +4,13 @@ import bodyParser from "koa-bodyparser";
 import { setupWebSocket } from "./socket";
 import router from "./routes";
 import { PORT } from "./config/env";
+import cors from "@koa/cors";
 
 const app = new Koa();
 
-// ✅ 中间件顺序非常重要
+// 启用 CORS 跨域支持
+app.use(cors());
+// 中间件顺序非常重要
 app.use(
   bodyParser({
     enableTypes: ["json", "form"],

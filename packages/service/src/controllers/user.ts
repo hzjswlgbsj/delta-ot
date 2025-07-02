@@ -1,6 +1,6 @@
 import { Context } from "koa";
 import { User } from "../db/models/User";
-import { decodeToken, signToken } from "../utils/jwt";
+import { decodeToken, signToken, verifyToken } from "../utils/jwt";
 import { getBody } from "../utils/body";
 import { RegisterBody, LoginBody, UpdateUserBody } from "../types/user";
 import { success, fail } from "../utils/response";
@@ -46,17 +46,38 @@ export async function login(ctx: Context) {
 
   const token = signToken({ userId: user.userId });
   loggedInUserStore.add(user.userId, token);
-  ctx.body = success({ token }, "Login successful");
+  ctx.body = success({ token, userInfo: user }, "Login successful");
 }
 
 export async function getUserInfo(ctx: Context) {
-  const userId = ctx.params.userId;
+  let userId = ctx.params.userId;
+
+  if (!userId) {
+    // 尝试从 token 解出当前用户信息
+    const authHeader = ctx.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      ctx.body = fail("Missing or invalid token", ErrorCode.INVALID_TOKEN);
+      return;
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const decoded = verifyToken(token);
+
+    if (!decoded || !decoded.userId) {
+      ctx.body = fail("Token verification failed", ErrorCode.INVALID_TOKEN);
+      return;
+    }
+
+    userId = decoded.userId;
+  }
+
   const user = await User.findOne({ where: { userId } });
 
   if (!user) {
     ctx.body = fail("User not found", ErrorCode.USER_NOT_FOUND);
     return;
   }
+
   ctx.body = success(user);
 }
 

@@ -8,7 +8,7 @@ const routes: RouteRecordRaw[] = [
     component: FilePage,
   },
   {
-    path: "/docs/:id",
+    path: "/docs/:guid",
     name: "docs",
     component: DocumentPage,
   },

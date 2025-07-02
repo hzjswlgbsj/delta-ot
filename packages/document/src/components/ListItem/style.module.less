@@ -1,12 +1,13 @@
 .item {
   display: flex;
-  padding: 12px;
-  border-radius: 8px;
-  transition: background 0.2s;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
   cursor: pointer;
+  transition: background-color 0.2s;
 
   &:hover {
-    background: #f5f5f5;
+    background-color: #f8f8f8;
   }
 }
 
@@ -17,16 +18,21 @@
 
 .info {
   flex: 1;
+}
 
-  .name {
-    font-weight: bold;
-    margin-bottom: 4px;
-  }
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-  .meta {
-    font-size: 12px;
-    color: #888;
-    display: flex;
-    gap: 12px;
-  }
+.name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+}
+
+.meta {
+  font-size: 13px;
+  color: #999;
 }

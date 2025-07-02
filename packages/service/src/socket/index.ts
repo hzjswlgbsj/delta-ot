@@ -5,5 +5,5 @@ import { createConnectionHandler } from "./connection";
 export function setupWebSocket(server: HTTPServer) {
   const wss = new Server({ server });
   wss.on("connection", createConnectionHandler());
-  console.log("✅ WebSocket server is listening...");
+  console.log("WebSocket server is listening...");
 }

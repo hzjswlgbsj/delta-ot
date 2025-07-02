@@ -3,9 +3,9 @@ import { sequelize } from "./db";
 async function testConnection() {
   try {
     await sequelize.authenticate();
-    console.log("✅ 数据库连接成功！");
+    console.log("database connected successfully");
   } catch (err) {
-    console.error("❌ 数据库连接失败：", err);
+    console.error("database connection failed:", err);
   } finally {
     await sequelize.close();
   }

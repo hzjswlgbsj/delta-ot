@@ -20,8 +20,11 @@ router.post("/login", login);
 // 获取所有用户：GET /api/user
 router.get("/getAllUsers", auth, getAllUsers);
 
-// 获取某个用户：GET /api/user/:userId
-router.get("/getUserInfo/:userId", auth, getUserInfo);
+// 获取指定用户：GET /api/user/:userId
+router.get("/getUserInfo/:userId", getUserInfo);
+
+// 获取当前用户（通过 token）
+router.get("/getUserInfo", getUserInfo);
 
 // 更新用户信息：PUT /api/user/:userId
 router.put("/updateUser/:userId", auth, updateUser);

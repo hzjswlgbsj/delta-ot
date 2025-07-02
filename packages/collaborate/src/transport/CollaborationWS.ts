@@ -104,26 +104,26 @@ export class CollaborationWS extends WebSocketClient {
   };
 
   onClosed = () => {
-    console.log("❌ Connection closed");
+    console.log("Connection closed");
 
     this.msgConsumer.onClosed();
     this.notRecMsgTimer && clearTimeout(this.notRecMsgTimer);
   };
 
   onConnected = () => {
-    console.log("✅ Connected to collab server");
+    console.log("Connected to collab server");
     this.onReady();
     this.msgConsumer.onConnected();
   };
 
   onReconnected = () => {
-    console.log("🔄 Reconnected to collab server");
+    console.log("Reconnected to collab server");
     this.onReady(true);
     this.msgConsumer.onReconnected();
   };
 
   onReconnect = () => {
-    console.log("🕐 Reconnecting to collab server...");
+    console.log("Reconnecting to collab server...");
 
     this.msgConsumer.onReconnect();
     this.notRecMsgTimer && clearTimeout(this.notRecMsgTimer);
