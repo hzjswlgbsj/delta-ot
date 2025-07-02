@@ -1,11 +1,12 @@
 import { Context } from "koa";
 import { User } from "../db/models/User";
-import { signToken } from "../utils/jwt";
+import { decodeToken, signToken } from "../utils/jwt";
 import { getBody } from "../utils/body";
 import { RegisterBody, LoginBody, UpdateUserBody } from "../types/user";
 import { success, fail } from "../utils/response";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorCode } from "../types/error-code";
+import { loggedInUserStore } from "../auth/LoggedInUserStore";
 
 export async function register(ctx: Context) {
   const body = getBody<RegisterBody>(ctx);
@@ -44,6 +45,7 @@ export async function login(ctx: Context) {
   }
 
   const token = signToken({ userId: user.userId });
+  loggedInUserStore.add(user.userId, token);
   ctx.body = success({ token }, "Login successful");
 }
 

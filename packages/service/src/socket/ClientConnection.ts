@@ -12,6 +12,7 @@ import { documentSessionManager } from "../sessions/DocumentSessionManager";
 import { User, File } from "../db/models";
 import { verifyToken } from "../utils/jwt";
 import { ErrorCode } from "../types/error-code";
+import { loggedInUserStore } from "../auth/LoggedInUserStore";
 
 export class ClientConnection extends BaseSocketConnection {
   private userId = "";
@@ -66,11 +67,19 @@ export class ClientConnection extends BaseSocketConnection {
     const { userId, documentId } = data;
     this.userId = data.userId;
     this.documentId = data.documentId;
-    // TODO：从缓存中获取 token
-    const token = "";
-    const decoded = verifyToken(token); // 封装好的 verifyToken
+    // 从缓存中获取 token，检查 token 是否有效
+    const token = loggedInUserStore.getToken(userId) ?? "";
+    try {
+      const decoded = verifyToken(token);
 
-    if (!decoded || decoded.userId !== userId) {
+      if (!decoded || decoded.userId !== userId) {
+        this.sendError(
+          ErrorCode.INVALID_TOKEN,
+          "Invalid token or userId mismatch"
+        );
+        return;
+      }
+    } catch (err) {
       this.sendError(
         ErrorCode.INVALID_TOKEN,
         "Invalid token or userId mismatch"
