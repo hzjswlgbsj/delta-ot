@@ -1,6 +1,7 @@
 import type { WebSocket } from "ws";
 import { MessageType, HeartbeatType } from "./types";
 import { safeJsonParse } from "../utils";
+import { ErrorCode } from "../types/error-code";
 
 export abstract class BaseSocketConnection {
   protected ws: WebSocket;
@@ -39,12 +40,23 @@ export abstract class BaseSocketConnection {
     });
   }
 
-  protected send(msg: object) {
+  send(msg: object) {
     try {
       this.ws.send(JSON.stringify(msg));
     } catch (err) {
       console.error("[BaseSocketConnection] send error:", err);
     }
+  }
+
+  protected sendError(code: ErrorCode, message: string) {
+    this.send({
+      type: MessageType.ERROR,
+      data: {
+        code,
+        message,
+        timestamp: Date.now(),
+      },
+    });
   }
 
   protected resetSendHBTimer() {

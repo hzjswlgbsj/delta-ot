@@ -41,10 +41,7 @@ export class WebsocketController {
   }
 
   sendCmd(delta: Delta) {
-    this.ws.sendCmd(SendCommandType.OP, {
-      type: SendCommandType.OP,
-      data: delta,
-    });
+    this.ws.sendCmd(SendCommandType.OP, delta);
   }
 
   destroy() {

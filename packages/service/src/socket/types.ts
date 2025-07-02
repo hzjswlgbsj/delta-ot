@@ -3,6 +3,7 @@ export enum MessageType {
   JOIN = "join",
   KEY_FRAME = "key_frame",
   OP = "op",
+  ERROR = "error",
 }
 
 /** 心跳类型，分为服务端和客户端，各自会检测是否是自己发送的心跳回来了，回来的称之为 ack */

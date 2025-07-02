@@ -1,0 +1,60 @@
+import { DocumentSession } from "./DocumentSession";
+import { ClientConnection } from "../socket/ClientConnection";
+import { ClientMessage } from "../socket/types";
+
+export class DocumentSessionManager {
+  private sessions: Map<string, DocumentSession> = new Map();
+
+  getSession(documentId: string): DocumentSession {
+    if (!this.sessions.has(documentId)) {
+      const session = new DocumentSession(documentId);
+      this.sessions.set(documentId, session);
+    }
+    return this.sessions.get(documentId)!;
+  }
+
+  createSession(documentId: string): DocumentSession {
+    return this.getSession(documentId);
+  }
+
+  removeSession(documentId: string): void {
+    this.sessions.delete(documentId);
+  }
+
+  hasSession(documentId: string): boolean {
+    return this.sessions.has(documentId);
+  }
+
+  getAllDocumentIds(): string[] {
+    return Array.from(this.sessions.keys());
+  }
+
+  getAllSessions(): DocumentSession[] {
+    return Array.from(this.sessions.values());
+  }
+
+  /** 将客户端加入对应文档会话 */
+  addClientToDocument(documentId: string, client: ClientConnection) {
+    const session = this.getSession(documentId);
+    session.addClient(client);
+  }
+
+  /** 将客户端从文档会话移除 */
+  removeClientFromDocument(documentId: string, client: ClientConnection) {
+    const session = this.sessions.get(documentId);
+    if (session) {
+      session.removeClient(client);
+      if (session.getClientCount() === 0) {
+        this.removeSession(documentId); // 没有客户端后自动清理
+      }
+    }
+  }
+
+  /** 接收到某个客户端的 OP 信令 */
+  handleClientOp(cmd: ClientMessage, from: ClientConnection) {
+    const session = this.getSession(cmd.documentId);
+    session.handleClientOp(cmd, from);
+  }
+}
+
+export const documentSessionManager = new DocumentSessionManager();
