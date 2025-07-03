@@ -49,6 +49,7 @@ export abstract class BaseSocketConnection {
   }
 
   protected sendError(code: ErrorCode, message: string) {
+    console.warn("[BaseSocketConnection] send error:", code, message);
     this.send({
       type: MessageType.ERROR,
       data: {

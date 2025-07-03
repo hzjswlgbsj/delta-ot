@@ -13,10 +13,6 @@ export class DocumentSessionManager {
     return this.sessions.get(documentId)!;
   }
 
-  createSession(documentId: string): DocumentSession {
-    return this.getSession(documentId);
-  }
-
   removeSession(documentId: string): void {
     this.sessions.delete(documentId);
   }
@@ -53,7 +49,7 @@ export class DocumentSessionManager {
   /** 接收到某个客户端的 OP 信令 */
   handleClientOp(cmd: ClientMessage, from: ClientConnection) {
     const session = this.getSession(cmd.documentId);
-    session.handleClientOp(cmd, from);
+    session.applyClientOperation(cmd, from);
   }
 }
 

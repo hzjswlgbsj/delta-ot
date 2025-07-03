@@ -1,21 +1,17 @@
 {
   "compilerOptions": {
-    "composite": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": false,
     "outDir": "dist",
-    "module": "ESNext",
-    "target": "ESNext",
-    "moduleResolution": "Node",
-    "rootDir": "src",
-    "baseUrl": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true
   },
   "include": [
-    "src",
-    "types",
+    "src"
   ]
 }

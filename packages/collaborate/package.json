@@ -2,18 +2,22 @@
   "name": "@delta-ot/collaborate",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup",
     "clean": "rm -rf dist"
   },
   "keywords": [],
@@ -21,6 +25,7 @@
   "license": "ISC",
   "devDependencies": {
     "jsdom": "^26.1.0",
+    "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   },

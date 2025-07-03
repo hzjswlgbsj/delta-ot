@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@delta-ot/collaborate": "workspace:*",
     "@koa/cors": "^5.0.0",
     "@types/koa-router": "^7.4.8",
     "dotenv": "^17.0.0",

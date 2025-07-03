@@ -1,6 +1,8 @@
 import Delta, { Op } from "quill-delta";
 import { ClientConnection } from "../socket/ClientConnection";
 import { ClientMessage, MessageType } from "../socket/types";
+import { OTEngine } from "@delta-ot/collaborate";
+import { OpHistoryBuffer } from "./OpHistoryBuffer";
 
 /**
  * 表示一个文档的协同会话状态
@@ -11,7 +13,7 @@ export class DocumentSession {
   sequence = 0;
 
   private clients: Set<ClientConnection> = new Set();
-  private pendingOps: ClientMessage<Delta>[] = [];
+  private historyBuffer = new OpHistoryBuffer();
 
   constructor(documentId: string) {
     this.documentId = documentId;
@@ -30,12 +32,6 @@ export class DocumentSession {
     for (const client of this.clients) {
       client.send(cmd);
     }
-  }
-
-  /** 接收 OP，缓存并广播（暂不 transform） */
-  handleClientOp(cmd: ClientMessage<Delta>, from: ClientConnection) {
-    this.pendingOps.push(cmd);
-    this.broadcastOp(cmd);
   }
 
   /** 当前编辑器内容 */
@@ -63,23 +59,45 @@ export class DocumentSession {
     return this.clients.size;
   }
 
-  /** 服务端广播关键帧 */
-  broadcastKeyFrame() {
-    const keyFrame: ClientMessage = {
-      type: MessageType.KEY_FRAME,
-      timestamp: Date.now(),
-      documentId: this.documentId,
-      userId: "", // 服务端发出的
+  /** 处理并应用客户端发来的 OP（包含 transform、缓存、广播） */
+  applyClientOperation(cmd: ClientMessage<Delta>, from: ClientConnection) {
+    const incomingSeq = cmd.sequence;
+    const baseSeq = this.sequence;
+
+    // === 1. Transform against buffered history ===
+    const opsToTransformAgainst = this.historyBuffer.getOpsSince(incomingSeq);
+    let transformedDelta = cmd.data as Delta;
+    for (const historyCmd of opsToTransformAgainst) {
+      transformedDelta = OTEngine.transform(
+        historyCmd.data as Delta,
+        transformedDelta
+      );
+    }
+
+    // === 2. 应用操作到全文内容 ===
+    const currentContent = new Delta(this.content);
+    const newContent = OTEngine.apply(currentContent, transformedDelta);
+    this.content = newContent.ops;
+
+    // === 3. 序列号递增 ===
+    this.incrementSequence();
+
+    // === 4. 构造新的广播命令 ===
+    const broadcastCmd: ClientMessage<Delta> = {
+      ...cmd,
+      data: transformedDelta,
       sequence: this.sequence,
-      data: {
-        content: this.content,
-        userIds: this.getUserIds(),
-      },
+      timestamp: Date.now(),
     };
 
-    for (const client of this.clients) {
-      client.send(keyFrame);
-    }
+    // === 5. 写入历史 buffer ===
+    this.historyBuffer.push(broadcastCmd);
+
+    // === 6. 广播 ===
+    this.broadcastOp(broadcastCmd);
+
+    // === 7. TODO：后续数据持久化钩子 ===
+    // this.persistOps([broadcastCmd]);
   }
 
   /** 增加序列号（transform 后） */

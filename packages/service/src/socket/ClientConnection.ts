@@ -74,6 +74,7 @@ export class ClientConnection extends BaseSocketConnection {
       this.sendError(ErrorCode.INVALID_TOKEN, "Token not found for user");
       return;
     }
+
     try {
       const decoded = verifyToken(token);
 

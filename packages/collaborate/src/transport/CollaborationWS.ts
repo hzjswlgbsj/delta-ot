@@ -105,7 +105,6 @@ export class CollaborationWS extends WebSocketClient {
 
   onClosed = () => {
     console.log("Connection closed");
-
     this.msgConsumer.onClosed();
     this.notRecMsgTimer && clearTimeout(this.notRecMsgTimer);
   };
@@ -124,7 +123,6 @@ export class CollaborationWS extends WebSocketClient {
 
   onReconnect = () => {
     console.log("Reconnecting to collab server...");
-
     this.msgConsumer.onReconnect();
     this.notRecMsgTimer && clearTimeout(this.notRecMsgTimer);
   };
