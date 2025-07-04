@@ -45,12 +45,6 @@ export class DocumentSessionManager {
       }
     }
   }
-
-  /** 接收到某个客户端的 OP 信令 */
-  handleClientOp(cmd: ClientMessage, from: ClientConnection) {
-    const session = this.getSession(cmd.documentId);
-    session.applyClientOperation(cmd, from);
-  }
 }
 
 export const documentSessionManager = new DocumentSessionManager();

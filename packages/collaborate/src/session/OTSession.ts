@@ -62,12 +62,18 @@ export class OTSession {
     this.notifyRemoteChange(transformed);
   }
 
+  private isSameOp(a: Delta, b: Delta): boolean {
+    return JSON.stringify(a.ops) === JSON.stringify(b.ops);
+  }
+
   /**
-   * 服务端确认首个 unack 操作：从队列移除，重建文档
-   * TODO: 后续支持按 op-id 精确 ack
+   * 根据服务端广播的 op，清除已 ack 的本地 op
+   * @param ackedOp 服务端广播回来的 op（自己提交的、已被 transform）
    */
-  ack(): void {
-    this.unAckOps.shift();
+  ackByServerOp(ackedOp: Delta): void {
+    this.unAckOps = this.unAckOps.filter((localOp) => {
+      return !this.isSameOp(localOp, ackedOp);
+    });
     this.rebuildDocument();
   }
 

@@ -139,8 +139,10 @@ export class ClientConnection extends BaseSocketConnection {
     this.send(response);
   }
 
+  /** 接收到某个客户端的 OP 信令 */
   private handleOp(cmd: ClientMessage) {
-    documentSessionManager.handleClientOp(cmd, this);
+    const session = documentSessionManager.getSession(cmd.documentId);
+    session.applyClientOperation(cmd, this);
   }
 
   getUserId(): string {

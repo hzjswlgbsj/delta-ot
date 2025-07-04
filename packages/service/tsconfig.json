@@ -11,6 +11,7 @@
   },
   "include": [
     "src",
-    "src/test-client.ts"
+    "src/test-client.ts",
+    "../collaborate/OpHistoryBuffer.ts"
   ]
 }
