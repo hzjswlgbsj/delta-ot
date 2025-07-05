@@ -1,8 +1,9 @@
 import Delta from "quill-delta";
 import { CollaborateController } from "./CollaborateController";
 import { WebsocketController } from "./WebsocketController";
-import { useUserStore } from "../store/useUserStore";
+import { useUserStore, useDocStore } from "../store";
 import { CollaborationMediator } from "./CollaborationMediator";
+import { KeyFramePayload } from "@/types/cmd";
 
 export class DocumentManager implements CollaborationMediator {
   private websocket!: WebsocketController;
@@ -10,15 +11,16 @@ export class DocumentManager implements CollaborationMediator {
   private remoteDeltaCallback: ((delta: Delta) => void) | null = null;
 
   async setup(guid: string, initialContent?: Delta) {
-    const store = useUserStore();
+    const userStore = useUserStore();
+
     const userInfo = {
-      id: store.userInfo.id,
-      userId: store.userInfo.userId,
-      userName: store.userInfo.userName,
-      avatar: store.userInfo.avatar,
-      loginName: store.userInfo.loginName,
-      createdAt: store.userInfo.createdAt,
-      updatedAt: store.userInfo.updatedAt,
+      id: userStore.userInfo.id,
+      userId: userStore.userInfo.userId,
+      userName: userStore.userInfo.userName,
+      avatar: userStore.userInfo.avatar,
+      loginName: userStore.userInfo.loginName,
+      createdAt: userStore.userInfo.createdAt,
+      updatedAt: userStore.userInfo.updatedAt,
     };
 
     this.websocket = new WebsocketController(
@@ -69,11 +71,17 @@ export class DocumentManager implements CollaborationMediator {
     this.collaborate.otSession.receiveRemote(delta);
   }
 
-  applyKeyFrame(data: {
-    content: Delta;
-    userIds: string[];
-    sequence: number;
-  }): void {
+  ackOpById(uuids: string[]) {
+    this.collaborate.otSession.ackByIds(uuids);
+  }
+
+  handleKeyFrame(data: KeyFramePayload): void {
     console.log("[DocumentManager] Applying KeyFrame", data);
+    const docStore = useDocStore();
+
+    const { sequence, content, userIds } = data;
+    this.websocket.ws.sequence = sequence;
+    this.collaborate.otSession.setContents(new Delta(content));
+    docStore.setUserIds(userIds);
   }
 }

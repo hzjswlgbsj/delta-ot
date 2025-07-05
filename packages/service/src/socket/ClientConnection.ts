@@ -13,6 +13,7 @@ import { User, File } from "../db/models";
 import { verifyToken } from "../utils/jwt";
 import { ErrorCode } from "../types/error-code";
 import { loggedInUserStore } from "../auth/LoggedInUserStore";
+import { generateUuidV4 } from "../utils";
 
 export class ClientConnection extends BaseSocketConnection {
   private userId = "";
@@ -36,6 +37,24 @@ export class ClientConnection extends BaseSocketConnection {
   protected onHeartbeatTimeout(): void {
     console.warn(`💔 Heartbeat timeout for user ${this.userId}`);
     this.onClose();
+  }
+
+  protected generateCmd(type: MessageType, data?: any): ClientMessage<any> {
+    return {
+      type,
+      data,
+      documentId: this.documentId,
+      userId: this.userId,
+      sequence: 0, // 服务端主动发送的消息，序列号为 0
+      uuid: generateUuidV4(),
+      timestamp: Date.now(),
+    };
+  }
+
+  sendCmd(type: MessageType, data?: any): ClientMessage<any> {
+    const cmd = this.generateCmd(type, data);
+    this.send(this.encodeCmd(cmd));
+    return cmd;
   }
 
   protected onReceiveMessage(cmd: ClientMessage<any>): void {
@@ -121,22 +140,12 @@ export class ClientConnection extends BaseSocketConnection {
     }
 
     const content = session.getContent();
-    const sequence = session.getSequence();
     const userIds = session.getUserIds();
 
-    const response: ClientMessage = {
-      type: MessageType.KEY_FRAME,
-      timestamp: Date.now(),
-      documentId,
-      userId: this.userId,
-      sequence,
-      data: {
-        content,
-        userIds,
-      },
-    };
-
-    this.send(response);
+    this.sendCmd(MessageType.KEY_FRAME, {
+      content,
+      userIds,
+    });
   }
 
   /** 接收到某个客户端的 OP 信令 */

@@ -9,7 +9,7 @@ import {
   UserInfo,
 } from "./types";
 import { WebSocketClient } from "./WebSocketClient";
-import { safeJsonParse } from "../utils/common";
+import { generateUuidV4, safeJsonParse } from "../utils/common";
 
 /** 与客户端通信心跳过程中没有收到任何回应超过 20s 时，就会认为心跳异常，进而踢出用户 */
 const HEARTBEAT_TIMEOUT = 1000 * 20;
@@ -137,11 +137,12 @@ export class CollaborationWS extends WebSocketClient {
     this.send(this.encodeCmd(c));
   }
 
-  sendCmd(type: SendCommandType, data?: any) {
+  sendCmd(type: SendCommandType, data?: any): ClientMessage<any> {
     // 重置发送心跳的timer
     this.resetSendHBTimer();
     const cmd = this.generateCmd(type, data);
     this.send(this.encodeCmd(cmd));
+    return cmd;
   }
 
   generateCmd(type: SendCommandType, data?: any): ClientMessage<any> {
@@ -151,6 +152,7 @@ export class CollaborationWS extends WebSocketClient {
       documentId: this.documentId,
       userId: this.userInfo.userId,
       sequence: this.sequence,
+      uuid: generateUuidV4(),
       timestamp: Date.now(),
     };
   }

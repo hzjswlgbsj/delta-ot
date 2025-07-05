@@ -1,5 +1,5 @@
 import type { WebSocket } from "ws";
-import { MessageType, HeartbeatType } from "./types";
+import { MessageType, HeartbeatType, ClientMessage } from "./types";
 import { safeJsonParse } from "../utils";
 import { ErrorCode } from "../types/error-code";
 
@@ -30,19 +30,25 @@ export abstract class BaseSocketConnection {
     this.onReceiveMessage(msg);
   }
 
-  protected sendHeartbeat() {
-    this.send({
-      type: MessageType.HEARTBEAT,
-      data: {
-        heartbeatType: HeartbeatType.SERVER,
-        timestamp: Date.now(),
-      },
-    });
+  encodeCmd(cmd: any) {
+    return JSON.stringify(cmd);
   }
 
-  send(msg: object) {
+  protected sendHeartbeat() {
+    this.send(
+      this.encodeCmd({
+        type: MessageType.HEARTBEAT,
+        data: {
+          heartbeatType: HeartbeatType.SERVER,
+          timestamp: Date.now(),
+        },
+      })
+    );
+  }
+
+  send(msg: string) {
     try {
-      this.ws.send(JSON.stringify(msg));
+      this.ws.send(msg);
     } catch (err) {
       console.error("[BaseSocketConnection] send error:", err);
     }
@@ -50,14 +56,16 @@ export abstract class BaseSocketConnection {
 
   protected sendError(code: ErrorCode, message: string) {
     console.warn("[BaseSocketConnection] send error:", code, message);
-    this.send({
-      type: MessageType.ERROR,
-      data: {
-        code,
-        message,
-        timestamp: Date.now(),
-      },
-    });
+    this.send(
+      this.encodeCmd({
+        type: MessageType.ERROR,
+        data: {
+          code,
+          message,
+          timestamp: Date.now(),
+        },
+      })
+    );
   }
 
   protected resetSendHBTimer() {

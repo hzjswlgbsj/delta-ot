@@ -8,7 +8,7 @@ import Delta from "quill-delta";
 import { CollaborationMediator } from "./CollaborationMediator";
 
 export class WebsocketController {
-  private ws!: CollaborationWS;
+  ws!: CollaborationWS;
 
   constructor(
     private options: WebsocketControllerOptions,
@@ -31,15 +31,18 @@ export class WebsocketController {
     console.log("[WS] heartbeat timeout");
   }
   dealCmd(cmd) {
-    /** 这里只会显式的处理通用的信令类型比如心跳，其他业务相关的信令会交给外部实例处理 */
     switch (cmd.type) {
       case ReceiveCommandType.OP:
         // 这里已经是 UI 层的通知了，操作转换已经在下层做好了，所以这里需要排除自己
         if (cmd.userId === this.options.userInfo.userId) {
-          // 忽略自己发送的操作
+          // 已广播自己的操作，进行 ack
+          this.mediator.ackOpById([cmd.uuid]);
           return;
         }
         this.mediator.handleRemoteOp(cmd.data);
+        break;
+      case ReceiveCommandType.KEY_FRAME:
+        this.mediator.handleKeyFrame(cmd.data);
         break;
       default:
         console.log("暂未处理的信令", cmd);
@@ -58,7 +61,7 @@ export class WebsocketController {
   }
 
   sendCmd(delta: Delta) {
-    this.ws.sendCmd(SendCommandType.OP, delta);
+    return this.ws.sendCmd(SendCommandType.OP, delta);
   }
 
   destroy() {

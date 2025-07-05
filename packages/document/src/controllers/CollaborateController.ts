@@ -41,8 +41,8 @@ export class CollaborateController {
 
   /** 提交本地 delta */
   commitLocalChange(delta: Delta) {
-    this.otSession.commitLocal(delta);
-    this.ws.sendCmd(delta);
+    const cmd = this.ws.sendCmd(delta);
+    this.otSession.commitLocal(cmd);
   }
 
   destroy() {

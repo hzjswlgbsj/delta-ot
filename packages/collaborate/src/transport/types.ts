@@ -24,8 +24,11 @@ export type ClientMessage<T> = {
   timestamp: number;
   documentId: string;
   userId: string;
+  /** 操作序列，主要是 OP 类型的信令使用 */
   sequence: number;
-  data?: T;
+  /** 信令的唯一标识 */
+  uuid: string;
+  data: T;
 };
 
 /** 接收的信令 */
