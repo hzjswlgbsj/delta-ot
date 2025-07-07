@@ -54,7 +54,6 @@ export class DocumentSession {
   getUserIds(): string[] {
     console.log(
       "当前文档的协同用户列表:",
-      JSON.stringify(this.clients),
       JSON.stringify(
         Array.from(this.clients)
           .map((c) => c.getUserId())

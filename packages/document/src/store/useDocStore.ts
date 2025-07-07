@@ -1,20 +1,19 @@
-import { DocumentRuntimeInfo } from "./type";
+// useDocStore.ts
 import { defineStore } from "pinia";
 
-export const useDocStore = defineStore("user", {
-  state: (): DocumentRuntimeInfo => ({
+export const useDocStore = defineStore("doc", {
+  state: () => ({
     documentId: "",
-    userIds: [],
+    userIds: [] as string[], // ✅ 显式默认值 + 类型
   }),
-  getters: {
-    userIds(state): string[] {
-      return state.userIds;
-    },
-  },
+
+  getters: {},
+
   actions: {
     setUserIds(userIds: string[]) {
       this.userIds = userIds;
     },
+
     clear() {
       this.userIds = [];
       this.documentId = "";

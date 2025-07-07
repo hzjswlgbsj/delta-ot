@@ -4,6 +4,7 @@ import { WebsocketController } from "./WebsocketController";
 import { useUserStore, useDocStore } from "../store";
 import { CollaborationMediator } from "./CollaborationMediator";
 import { KeyFramePayload } from "@/types/cmd";
+import { isReactive, isReadonly, toRaw } from "vue";
 
 export class DocumentManager implements CollaborationMediator {
   private websocket!: WebsocketController;
@@ -12,15 +13,16 @@ export class DocumentManager implements CollaborationMediator {
 
   async setup(guid: string, initialContent?: Delta) {
     const userStore = useUserStore();
-
+    const { id, userId, userName, avatar, loginName, createdAt, updatedAt } =
+      userStore.userInfo;
     const userInfo = {
-      id: userStore.userInfo.id,
-      userId: userStore.userInfo.userId,
-      userName: userStore.userInfo.userName,
-      avatar: userStore.userInfo.avatar,
-      loginName: userStore.userInfo.loginName,
-      createdAt: userStore.userInfo.createdAt,
-      updatedAt: userStore.userInfo.updatedAt,
+      id,
+      userId,
+      userName,
+      avatar,
+      loginName,
+      createdAt,
+      updatedAt,
     };
 
     this.websocket = new WebsocketController(
@@ -78,7 +80,6 @@ export class DocumentManager implements CollaborationMediator {
   handleKeyFrame(data: KeyFramePayload): void {
     console.log("[DocumentManager] Applying KeyFrame", data);
     const docStore = useDocStore();
-
     const { sequence, content, userIds } = data;
     this.websocket.ws.sequence = sequence;
     this.collaborate.otSession.setContents(new Delta(content));
