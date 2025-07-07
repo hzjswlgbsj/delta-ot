@@ -88,7 +88,7 @@ export class ClientConnection extends BaseSocketConnection {
     this.userId = userId;
     this.documentId = documentId;
     // 从缓存中获取 token，检查 token 是否有效
-    const token = loggedInUserStore.getToken(userId) ?? "";
+    const token = (await loggedInUserStore.getToken(userId)) ?? "";
     if (!token) {
       this.sendError(ErrorCode.INVALID_TOKEN, "Token not found for user");
       return;

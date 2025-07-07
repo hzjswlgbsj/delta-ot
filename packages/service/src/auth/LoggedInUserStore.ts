@@ -1,79 +1,64 @@
+import redis from "../utils/redis";
 import { decodeToken } from "../utils/jwt";
 
-interface UserSession {
-  token: string;
-  expireAt: number;
-}
+const PREFIX = "user:token:";
 
 /**
- * 管理已登录用户的缓存（基于 userId -> token 结构）
- * 支持自动过期清理
+ * 管理已登录用户的缓存（基于 Redis 存储 userId -> token 映射）
+ * Redis 自带过期机制，无需手动清理
  */
 class LoggedInUserStore {
-  private store: Map<string, UserSession> = new Map();
-
-  constructor() {
-    // 启动定时清理任务
-    setInterval(() => this.cleanup(), 60 * 1000); // 每分钟清理一次
-  }
-
   /**
    * 添加已登录用户记录
+   * @param userId 用户 ID
+   * @param token JWT token（带有 exp 字段）
    */
-  add(userId: string, token: string) {
+  async add(userId: string, token: string) {
     const decoded = decodeToken(token);
-    const expireAt =
-      decoded?.exp && typeof decoded.exp === "number"
-        ? decoded.exp * 1000 // 转为毫秒
-        : Date.now() + 7 * 24 * 60 * 60 * 1000; // 默认 7 天
+    const now = Math.floor(Date.now() / 1000); // 当前时间（单位：秒）
+    const exp =
+      typeof decoded?.exp === "number" ? decoded.exp : now + 7 * 24 * 60 * 60;
 
-    this.store.set(userId, { token, expireAt });
+    const ttl = exp - now; // 计算剩余过期秒数
+
+    if (ttl <= 0) {
+      console.warn(
+        `[LoggedInUserStore] Token 已过期，不再缓存 userId=${userId}`
+      );
+      return;
+    }
+
+    await redis.set(`${PREFIX}${userId}`, token, "EX", ttl);
   }
 
   /**
-   * 验证用户是否已登录
+   * 获取用户的 token，如果不存在或已过期则返回 null
    */
-  isLoggedIn(userId: string): boolean {
-    const session = this.store.get(userId);
-    if (!session) return false;
-    if (Date.now() > session.expireAt) {
-      this.store.delete(userId);
-      return false;
-    }
-    return true;
+  async getToken(userId: string): Promise<string | null> {
+    const token = await redis.get(`${PREFIX}${userId}`);
+    return token ?? null;
   }
 
   /**
-   * 获取用户的 token（用于验证场景）
+   * 验证用户是否已登录（token 存在即可）
    */
-  getToken(userId: string): string | undefined {
-    const session = this.store.get(userId);
-    if (!session || Date.now() > session.expireAt) {
-      this.store.delete(userId);
-      return undefined;
-    }
-    return session.token;
-  }
-
-  remove(userId: string) {
-    this.store.delete(userId);
-  }
-
-  refresh(userId: string, newToken: string) {
-    this.add(userId, newToken);
+  async isLoggedIn(userId: string): Promise<boolean> {
+    const token = await this.getToken(userId);
+    return !!token;
   }
 
   /**
-   * 清理过期 token
+   * 手动移除某个用户的 token（退出登录等场景）
    */
-  private cleanup() {
-    const now = Date.now();
-    for (const [userId, session] of this.store.entries()) {
-      if (session.expireAt <= now) {
-        console.log(`cleanup expired token for user ${userId}`);
-        this.store.delete(userId);
-      }
-    }
+  async remove(userId: string) {
+    await redis.del(`${PREFIX}${userId}`);
+  }
+
+  /**
+   * 刷新用户 token（常用于延长有效期）
+   */
+  async refresh(userId: string, newToken: string) {
+    await this.add(userId, newToken);
   }
 }
 
