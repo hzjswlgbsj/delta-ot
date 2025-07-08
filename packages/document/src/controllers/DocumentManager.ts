@@ -4,7 +4,6 @@ import { WebsocketController } from "./WebsocketController";
 import { useUserStore, useDocStore } from "../store";
 import { CollaborationMediator } from "./CollaborationMediator";
 import { KeyFramePayload } from "@/types/cmd";
-import { isReactive, isReadonly, toRaw } from "vue";
 
 export class DocumentManager implements CollaborationMediator {
   private websocket!: WebsocketController;

@@ -7,11 +7,5 @@ const redis = new Redis({
   password: REDIS_PASSWORD,
   db: 0,
 });
-// const redis = new Redis({
-//   host: "106.54.192.37",
-//   port: 6379,
-//   password: "MyRedis2025#",
-//   db: 0,
-// });
 
 export default redis;
