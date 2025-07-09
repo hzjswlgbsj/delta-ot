@@ -12,11 +12,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^24.0.4",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vitejs/plugin-vue-jsx": "^3.1.0",
     "@vue/babel-plugin-jsx": "^1.4.0",
+    "autoprefixer": "^10.4.21",
     "less": "^4.3.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
     "typescript": "^5.8.3",
     "vite": "^5.4.19",
     "vue-tsc": "^2.2.10"

@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
-import { DocumentPage, LoginPage, FilePage } from "../pages";
+import { DocumentPage, LoginPage, FilePage, ClientTestPage } from "../pages";
 
 const routes: RouteRecordRaw[] = [
   {
@@ -16,6 +16,16 @@ const routes: RouteRecordRaw[] = [
     path: "/login",
     name: "login",
     component: LoginPage,
+  },
+  {
+    path: "/client-test",
+    name: "ClientTestPage",
+    component: ClientTestPage,
+  },
+  {
+    path: "/test-collab",
+    name: "TestPage",
+    component: () => import("@/test-lab/collab/TestPage"),
   },
 ];
 

@@ -70,20 +70,8 @@ export class OTSession {
    * 服务端确认 ack 后，根据 uuid 精确移除本地未确认的 op
    */
   ackByIds(uuids: string[]): void {
-    console.log(
-      `[OTSession] before ackByIds: ${uuids.join(", ")}`,
-      this.unAckOps
-    );
-
     if (uuids.length === 0) return;
-
     this.unAckOps = this.unAckOps.filter((msg) => !uuids.includes(msg.uuid));
-
-    console.log(
-      `[OTSession] after ackByIds: ${uuids.join(", ")}`,
-      this.unAckOps
-    );
-
     this.rebuildDocument();
   }
 

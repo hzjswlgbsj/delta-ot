@@ -42,9 +42,13 @@ export class DocumentSessionManager {
     const session = this.sessions.get(documentId);
     if (session) {
       session.removeClient(client);
-      if (session.getClientCount() === 0) {
-        await this.removeSession(documentId);
-      }
+
+      // 用户刚断开就立刻判断是否为最后一人退出可能不准确，有可能是网络抖动，所以使用 setTimeout 来做一个延迟判断
+      setTimeout(async () => {
+        if (session.getClientCount() === 0) {
+          await this.removeSession(documentId);
+        }
+      }, 1000);
     }
   }
 }

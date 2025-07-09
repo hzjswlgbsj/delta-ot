@@ -16,12 +16,12 @@ export default defineComponent({
     const latestUpdate = ref<Delta>(null);
     const loading = ref(false);
     let docManager: DocumentManager;
-    const store = useUserStore();
+    const userStore = useUserStore();
 
     const getUser = async () => {
       const res = await getUserInfo();
       if (res.code === 0) {
-        store.setUser(res.data);
+        userStore.setUser(res.data);
       } else {
         throw new Error(res.msg || "获取用户失败");
       }
@@ -54,7 +54,7 @@ export default defineComponent({
       editorValue.value = initialDelta;
 
       docManager = new DocumentManager();
-      docManager.setup(fileInfo.guid, initialDelta);
+      docManager.setup(fileInfo.guid, userStore.userInfo, initialDelta);
 
       // 使用 DocumentManager 中封装的监听器
       docManager.onRemoteDelta((delta) => {

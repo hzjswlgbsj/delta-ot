@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import path from "path";
+import tailwindcss from "@tailwindcss/postcss";
+import autoprefixer from "autoprefixer";
 
 export default defineConfig({
   resolve: {
@@ -9,11 +11,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
-  plugins: [
-    vue(),
-    vueJsx(), // 添加这个支持 TSX
-  ],
+  plugins: [vue(), vueJsx()],
   css: {
+    postcss: {
+      plugins: [tailwindcss(), autoprefixer()],
+    },
     preprocessorOptions: {
       less: {
         javascriptEnabled: true,
@@ -21,6 +23,6 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000, // 👈 设置开发服务器端口
+    port: 3000,
   },
 });

@@ -188,7 +188,7 @@ export class DocumentSession {
     this.clients.clear();
     this.historyBuffer.clear();
     this.sequence = 0;
-    await this.persistToDatabase();
+    // await this.persistToDatabase();
     this.stopPersistence();
     this.model = new DocumentModel();
   }

@@ -1,29 +1,16 @@
 import Delta from "quill-delta";
 import { CollaborateController } from "./CollaborateController";
 import { WebsocketController } from "./WebsocketController";
-import { useUserStore, useDocStore } from "../store";
+import { useDocStore } from "../store";
 import { CollaborationMediator } from "./CollaborationMediator";
 import { KeyFramePayload } from "@/types/cmd";
-
+import { UserInfo } from "@/types/base";
 export class DocumentManager implements CollaborationMediator {
   private websocket!: WebsocketController;
   private collaborate!: CollaborateController;
   private remoteDeltaCallback: ((delta: Delta) => void) | null = null;
 
-  async setup(guid: string, initialContent?: Delta) {
-    const userStore = useUserStore();
-    const { id, userId, userName, avatar, loginName, createdAt, updatedAt } =
-      userStore.userInfo;
-    const userInfo = {
-      id,
-      userId,
-      userName,
-      avatar,
-      loginName,
-      createdAt,
-      updatedAt,
-    };
-
+  async setup(guid: string, userInfo: UserInfo, initialContent?: Delta) {
     this.websocket = new WebsocketController(
       {
         userInfo,
@@ -44,6 +31,7 @@ export class DocumentManager implements CollaborationMediator {
 
     // 注册远端变更回调
     this.collaborate.onRemoteChange((delta) => {
+      console.log(`用户 ${userInfo.userName} 收到远端变更:`, delta);
       this.remoteDeltaCallback?.(delta);
     });
   }
