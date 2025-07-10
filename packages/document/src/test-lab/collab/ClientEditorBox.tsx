@@ -2,7 +2,7 @@
 import { defineComponent, onMounted, PropType, ref, watch } from "vue";
 import { Editor } from "@/components";
 import { DocumentManager } from "@/controllers/DocumentManager";
-import Delta from "quill-delta";
+import Delta, { Op } from "quill-delta";
 import { getFileInfo } from "@/services/file";
 import { safeJsonParse } from "@/utils";
 import { UserInfo } from "@/types/base";
@@ -17,16 +17,17 @@ export default defineComponent({
       type: String,
       required: true,
     },
-    simulateConflict: Boolean,
-    insertText: String,
-    insertAt: Number,
+    update: {
+      type: Array as PropType<Op[]>,
+      required: true,
+    },
   },
   setup(props) {
     const editorValue = ref<Delta | null>(null);
     const latestUpdate = ref<Delta | null>(null);
     const manager = ref<DocumentManager | null>(null);
     const loading = ref(false);
-    const { user, documentId, simulateConflict, insertText, insertAt } = props;
+    const { user, documentId, update } = props;
 
     const initDocument = async () => {
       loading.value = true;
@@ -40,25 +41,30 @@ export default defineComponent({
 
       const docManager = new DocumentManager();
       docManager.setup(documentId, user, initial);
+      // 使用 DocumentManager 中封装的监听器
       docManager.onRemoteDelta((delta) => {
         latestUpdate.value = delta;
       });
       manager.value = docManager;
-
-      if (simulateConflict && insertText) {
-        setTimeout(() => {
-          const delta = new Delta().retain(insertAt || 0).insert(insertText!);
-          latestUpdate.value = delta;
-          docManager.commitDelta(delta);
-          console.log(`[${user.userName}] 插入:`, delta);
-        }, 3000);
-      }
-
       loading.value = false;
     };
 
     onMounted(initDocument);
     watch(() => documentId, initDocument);
+
+    watch(
+      () => update,
+      (ops) => {
+        if (ops) {
+          const delta = new Delta(ops);
+          latestUpdate.value = delta;
+          manager.value?.commitDelta(delta);
+        }
+      },
+      {
+        deep: true,
+      }
+    );
 
     const handleChange = (delta: Delta) => {
       manager.value?.commitDelta(delta);

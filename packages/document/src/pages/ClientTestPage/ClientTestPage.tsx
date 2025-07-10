@@ -2,17 +2,17 @@ import { defineComponent, onMounted, ref } from "vue";
 import { login } from "@/services/user";
 import ClientEditorBox from "@/test-lab/collab/ClientEditorBox";
 import { useRoute } from "vue-router";
-
+import { Op } from "quill-delta";
 export default defineComponent({
   setup() {
     const route = useRoute();
     const loading = ref(true);
     const error = ref("");
+    const update = ref<Op[]>([]);
     const user = ref<any>(null);
-    const { loginName, pwd, docId, simulateConflict, insertText, insertAt } =
-      route.query;
+    const { loginName, pwd, docId } = route.query;
 
-    onMounted(async () => {
+    const init = async () => {
       if (!loginName || !pwd) {
         error.value = "缺少登录参数";
         return;
@@ -27,6 +27,13 @@ export default defineComponent({
       } catch (err: any) {
         error.value = err.message || "未知错误";
       }
+    };
+
+    onMounted(async () => {
+      window.addEventListener("message", (event) => {
+        update.value.splice(0, update.value.length, ...event.data.ops);
+      });
+      await init();
     });
 
     return () => (
@@ -39,9 +46,7 @@ export default defineComponent({
           <ClientEditorBox
             user={user.value}
             documentId={docId as string}
-            simulateConflict={simulateConflict === "true"}
-            insertText={insertText as string}
-            insertAt={parseInt((insertAt as string) || "0")}
+            update={update.value}
           />
         )}
       </div>
