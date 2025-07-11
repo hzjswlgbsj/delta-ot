@@ -7,7 +7,7 @@ export class DocumentSessionManager {
   getSession(documentId: string): DocumentSession {
     if (!this.sessions.has(documentId)) {
       const session = new DocumentSession(documentId);
-      session.startPersistence();
+      // session.startPersistence();
       this.sessions.set(documentId, session);
     }
     return this.sessions.get(documentId)!;

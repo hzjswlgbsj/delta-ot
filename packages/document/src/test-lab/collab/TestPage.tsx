@@ -1,7 +1,12 @@
 // 包裹一个 editor + 状态展示（user、ack、delta）
 import { defineComponent, onMounted, ref } from "vue";
-import IframeMessageManager from "../utils/iframeMessageManager";
-import { basicInsertConflict, query1, query2 } from "./testCases";
+import IframeMessageManager from "../utils/IframeMessageManager";
+import {
+  basicInsertConflict,
+  insertAtDifferentPositions,
+  query1,
+  query2,
+} from "./testCases";
 
 export default defineComponent({
   setup() {
@@ -17,8 +22,8 @@ export default defineComponent({
       );
 
       setTimeout(() => {
-        messageManager1.send(basicInsertConflict[0]);
-        messageManager2.send(basicInsertConflict[1]);
+        messageManager1.send(insertAtDifferentPositions[0]);
+        messageManager2.send(insertAtDifferentPositions[1]);
       }, 3000);
     });
 
