@@ -38,7 +38,7 @@ export class CollaborationWS extends WebSocketClient {
   }
 
   set sequence(sequence: number) {
-    this._sequence = sequence;
+    this._sequence = sequence ?? 0;
   }
 
   private notRecMsgTimer: ReturnType<typeof setTimeout> | null = null;
@@ -141,6 +141,7 @@ export class CollaborationWS extends WebSocketClient {
     // 重置发送心跳的timer
     this.resetSendHBTimer();
     const cmd = this.generateCmd(type, data);
+    console.log("发送客户端操作：", JSON.stringify(cmd));
     this.send(this.encodeCmd(cmd));
     return cmd;
   }

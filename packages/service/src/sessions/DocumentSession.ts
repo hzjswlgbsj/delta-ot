@@ -43,7 +43,7 @@ export class DocumentSession {
     return this.model.getContents().ops;
   }
 
-  setContent(delta: Delta) {
+  setContents(delta: Delta) {
     this.model.setContents(delta);
   }
 
@@ -76,6 +76,15 @@ export class DocumentSession {
   }
 
   /**
+   * 清理 retain(0) 操作，避免 transform 问题
+   * Quill 编辑器会产生 retain(0) 操作，这会导致 transform 结果错误
+   */
+  private cleanRetainZero(delta: Delta): Delta {
+    const cleanedOps = delta.ops.filter((op) => !(op.retain === 0));
+    return new Delta(cleanedOps);
+  }
+
+  /**
    * 处理并应用客户端发来的 OP（包含 transform、缓存、广播）
    *
    * 1. transform against historyBuffer（如果 seq 落后）
@@ -88,11 +97,15 @@ export class DocumentSession {
     const incomingSeq = cmd.sequence;
     const currentSeq = this.sequence;
     const missedCount = currentSeq - incomingSeq;
+    console.log("收到客户端操作：", JSON.stringify(cmd), this.sequence);
 
-    let transformedDelta = cmd.data as Delta;
+    // 清理 retain(0) 操作，避免 transform 问题
+    let transformedDelta = this.cleanRetainZero(cmd.data as Delta);
 
     // 1.如果客户端落后，则需要 transform
     if (missedCount > 0) {
+      console.log("转换前：", JSON.stringify(transformedDelta));
+
       const opsToTransformAgainst = this.historyBuffer.getOpsSince(incomingSeq);
       const availableCount = opsToTransformAgainst.length;
 
@@ -110,9 +123,11 @@ export class DocumentSession {
 
       // transform 所有未处理历史
       for (const historyCmd of opsToTransformAgainst) {
-        const historyDelta = new Delta(historyCmd.data);
+        // 同样清理历史操作中的 retain(0)
+        const historyDelta = this.cleanRetainZero(new Delta(historyCmd.data));
         transformedDelta = OTEngine.transform(historyDelta, transformedDelta);
       }
+      console.log("转换后：", JSON.stringify(transformedDelta));
     }
 
     // 2.应用到文档模型

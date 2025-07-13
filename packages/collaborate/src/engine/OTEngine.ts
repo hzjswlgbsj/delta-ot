@@ -23,7 +23,14 @@ export class OTEngine {
    * const final = base.compose(opA).compose(B′); // => "BAhello"
    */
   static transform(op1: Delta, op2: Delta): Delta {
-    return op1.transform(op2, true); // op1 优先，op2 被调整
+    console.log(
+      "[OTEngine] transform: ",
+      JSON.stringify(op1),
+      JSON.stringify(op2)
+    );
+    const transformed = op1.transform(op2, true); // op1 优先，op2 被调整
+    console.log(`[OTEngine] transform: ${JSON.stringify(transformed)}`);
+    return transformed;
   }
   /**
    * compose：将两个操作合并为一个（顺序执行）

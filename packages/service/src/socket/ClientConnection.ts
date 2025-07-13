@@ -145,6 +145,7 @@ export class ClientConnection extends BaseSocketConnection {
     this.sendCmd(MessageType.KEY_FRAME, {
       content,
       userIds,
+      sequence: session.sequence,
     });
   }
 

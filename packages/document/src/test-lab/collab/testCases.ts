@@ -64,14 +64,14 @@ export const basicInsertConflict: TestCase[] = [
  */
 export const insertAtDifferentPositions: TestCase[] = [
   {
-    description: "用户 A 在文档开始插入 'Hello '",
-    ops: [{ retain: 0 }, { insert: "Hello " }],
+    description: "用户 A 在文档开始插入 '1'",
+    ops: [{ retain: 0 }, { insert: "1" }],
     userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
     delay: 500,
   },
   {
-    description: "用户 B 在文档末尾插入 ' World'",
-    ops: [{ retain: 1000 }, { insert: " World" }], // retain 设置为大于当前长度，测试尾部追加
+    description: "用户 B 在文档末尾插入 '4'",
+    ops: [{ retain: 4 }, { insert: "4" }], // retain 设置为大于当前长度，测试尾部追加
     userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
     delay: 500,
   },

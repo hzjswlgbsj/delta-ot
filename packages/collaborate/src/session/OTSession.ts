@@ -40,26 +40,63 @@ export class OTSession {
     this.remoteChangeListeners.forEach((cb) => cb(delta));
   }
 
+  /**
+   * 清理 retain(0) 操作，避免 transform 问题
+   * Quill 编辑器会产生 retain(0) 操作，这会导致 transform 结果错误
+   */
+  private cleanRetainZero(delta: Delta): Delta {
+    const cleanedOps = delta.ops.filter((op) => !(op.retain === 0));
+    return new Delta(cleanedOps);
+  }
+
   /** 本地提交：立即 apply 到文档，同时记录为未确认状态 */
+  // commitLocal(msg: ClientMessage<Delta>): void {
+  //   console.log(`[OTSession] commitLocal: ${JSON.stringify(msg.data)}`);
+  //   this.unAckOps.push(msg);
+  //   const op: Delta = msg.data as Delta;
+  //   this.base = this.base.compose(op);
+  //   this.document.apply(op); // 增量更新，无需 rebuild
+  // }
   commitLocal(msg: ClientMessage<Delta>): void {
     console.log(`[OTSession] commitLocal: ${JSON.stringify(msg.data)}`);
-    this.unAckOps.push(msg);
-    const op: Delta = msg.data as Delta;
-    this.base = this.base.compose(op);
-    this.document.apply(op); // 增量更新，无需 rebuild
+
+    // 清理 retain(0) 操作，避免 transform 问题
+    const cleanedOp = this.cleanRetainZero(msg.data as Delta);
+
+    // 更新 unAckOps 中的操作
+    const cleanedMsg = { ...msg, data: cleanedOp };
+    this.unAckOps.push(cleanedMsg);
+    this.document.apply(cleanedOp); // 只更新视图，不动 base
   }
 
   /**
    * 接收远端操作，并 transform 后合入 base，再叠加本地未 ack 的操作
    */
   receiveRemote(remoteOp: Delta) {
-    let transformed = remoteOp;
+    console.log(`[OTSession] receiveRemote: ${JSON.stringify(remoteOp)}`);
+    console.log(`[OTSession] unAckOps: ${JSON.stringify(this.unAckOps)}`);
 
-    this.unAckOps.forEach((localMsg) => {
-      transformed = OTEngine.transform(localMsg.data, transformed);
-    });
+    // 清理 retain(0) 操作，避免 transform 问题
+    const cleanedRemoteOp = this.cleanRetainZero(remoteOp);
 
+    // 正确的 OT 逻辑：远端操作需要被所有本地未确认操作 transform
+    let transformed = cleanedRemoteOp;
+    for (const localMsg of this.unAckOps) {
+      // 同样清理本地操作中的 retain(0)
+      const cleanedLocalOp = this.cleanRetainZero(localMsg.data);
+      transformed = OTEngine.transform(cleanedLocalOp, transformed);
+    }
+
+    console.log(`[OTSession] transformed: ${JSON.stringify(transformed)}`);
+
+    // 将 transform 后的远端操作应用到 base
     this.base = this.base.compose(transformed);
+
+    // 本地未确认操作需要被远端操作 transform（反向）
+    for (const localMsg of this.unAckOps) {
+      localMsg.data = OTEngine.transform(transformed, localMsg.data);
+    }
+
     this.rebuildDocument();
 
     // 通知 UI 更新

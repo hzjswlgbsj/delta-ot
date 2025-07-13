@@ -64,12 +64,25 @@ export class DocumentManager implements CollaborationMediator {
     this.collaborate.otSession.ackByIds(uuids);
   }
 
+  /**
+   * 清理 retain(0) 操作，避免 transform 问题
+   * Quill 编辑器会产生 retain(0) 操作，这会导致 transform 结果错误
+   */
+  private cleanRetainZero(delta: Delta): Delta {
+    const cleanedOps = delta.ops.filter((op) => !(op.retain === 0));
+    return new Delta(cleanedOps);
+  }
+
   handleKeyFrame(data: KeyFramePayload): void {
     console.log("[DocumentManager] Applying KeyFrame", data);
     const docStore = useDocStore();
     const { sequence, content, userIds } = data;
     this.websocket.ws.sequence = sequence;
-    this.collaborate.otSession.setContents(new Delta(content));
+
+    // 清理 retain(0) 操作，避免 transform 问题
+    const cleanedContent = this.cleanRetainZero(new Delta(content));
+    this.collaborate.otSession.setContents(cleanedContent);
+
     docStore.setUserIds(userIds);
   }
 }
