@@ -33,6 +33,9 @@ export class WebsocketController {
   dealCmd(cmd) {
     switch (cmd.type) {
       case ReceiveCommandType.OP:
+        // 更新 sequence
+        this.ws.sequence = cmd.sequence;
+
         // 这里已经是 UI 层的通知了，操作转换已经在下层做好了，所以这里需要排除自己
         if (cmd.userId === this.options.userInfo.userId) {
           // 已广播自己的操作，进行 ack

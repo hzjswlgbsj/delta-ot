@@ -38,6 +38,8 @@ export type ServiceMessage<T> = {
   documentId: string;
   userId: string;
   sequence: number;
+  /** 信令的唯一标识 */
+  uuid: string;
   data: T;
 };
 /** 接收的信令类型 */

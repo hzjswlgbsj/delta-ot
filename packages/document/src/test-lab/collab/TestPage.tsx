@@ -4,6 +4,8 @@ import IframeMessageManager from "../utils/IframeMessageManager";
 import {
   basicInsertConflict,
   insertAtDifferentPositions,
+  concurrentDeleteAndInsert,
+  formatConflict,
   query1,
   query2,
 } from "./testCases";
@@ -22,8 +24,8 @@ export default defineComponent({
       );
 
       setTimeout(() => {
-        messageManager1.send(insertAtDifferentPositions[0]);
-        messageManager2.send(insertAtDifferentPositions[1]);
+        messageManager1.send(formatConflict[0]);
+        messageManager2.send(formatConflict[1]);
       }, 3000);
     });
 

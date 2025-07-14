@@ -17,7 +17,7 @@ function cleanRetainZero(delta: Delta): Delta {
 
 ## 需要应用 cleanRetainZero 的地方
 
-### 1. ✅ 已修复：服务端 DocumentSession
+### 1. 已修复：服务端 DocumentSession
 
 **文件**: `packages/service/src/sessions/DocumentSession.ts`
 
@@ -26,9 +26,9 @@ function cleanRetainZero(delta: Delta): Delta {
 - `applyClientOperation` 方法中处理客户端操作时
 - 历史操作 transform 时
 
-**状态**: ✅ 已修复
+**状态**: 已修复
 
-### 2. 🔴 需要修复：客户端 OTSession
+### 2. 需要修复：客户端 OTSession
 
 **文件**: `packages/collaborate/src/session/OTSession.ts`
 
@@ -70,7 +70,7 @@ commitLocal(msg: ClientMessage<Delta>): void {
 }
 ```
 
-### 3. 🔴 需要修复：DocumentManager
+### 3. 需要修复：DocumentManager
 
 **文件**: `packages/document/src/controllers/DocumentManager.ts`
 
@@ -102,7 +102,7 @@ private cleanRetainZero(delta: Delta): Delta {
 }
 ```
 
-### 4. 🔴 需要修复：OTEngine（可选）
+### 4. 需要修复：OTEngine（可选）
 
 **文件**: `packages/collaborate/src/engine/OTEngine.ts`
 
@@ -137,7 +137,7 @@ private static cleanRetainZero(delta: Delta): Delta {
 }
 ```
 
-### 5. 🔴 需要修复：DocumentModel
+### 5. 需要修复：DocumentModel
 
 **文件**: `packages/collaborate/src/model/DocumentModel.ts`
 
