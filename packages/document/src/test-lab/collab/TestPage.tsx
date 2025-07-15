@@ -6,6 +6,9 @@ import {
   insertAtDifferentPositions,
   concurrentDeleteAndInsert,
   formatConflict,
+  deleteConflict,
+  samePositionDeleteConflict,
+  complexInsertConflict,
   query1,
   query2,
 } from "./testCases";
@@ -24,8 +27,8 @@ export default defineComponent({
       );
 
       setTimeout(() => {
-        messageManager1.send(formatConflict[0]);
-        messageManager2.send(formatConflict[1]);
+        messageManager1.send(complexInsertConflict[0]);
+        messageManager2.send(complexInsertConflict[1]);
       }, 3000);
     });
 

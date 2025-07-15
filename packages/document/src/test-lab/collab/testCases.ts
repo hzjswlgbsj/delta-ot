@@ -114,3 +114,232 @@ export const formatConflict: TestCase[] = [
     delay: 500,
   },
 ];
+
+/**
+ * Case 5: deleteConflict
+ * 描述：两个用户同时删除不同位置的字符，测试删除冲突处理
+ */
+export const deleteConflict: TestCase[] = [
+  {
+    description: "用户 A 删除第 0 个字符",
+    ops: [{ retain: 0 }, { delete: 1 }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 删除第 1 个字符",
+    ops: [{ retain: 1 }, { delete: 1 }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 5.1: samePositionDeleteConflict
+ * 描述：两个用户同时删除相同位置的字符，测试相同位置删除冲突
+ * 预期：基础文档 "base"，用户A删除位置1的'a'，用户B删除位置1的'a'
+ * 结果：应该是 "bse"（只删除一个'a'）
+ */
+export const samePositionDeleteConflict: TestCase[] = [
+  {
+    description: "用户 A 删除第 1 个字符 'a'",
+    ops: [{ retain: 1 }, { delete: 1 }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 删除第 1 个字符 'a'",
+    ops: [{ retain: 1 }, { delete: 1 }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 6: complexInsertConflict
+ * 描述：两个用户在相邻位置插入文本，测试复杂插入冲突
+ */
+export const complexInsertConflict: TestCase[] = [
+  {
+    description: "用户 A 在位置 1 插入 'Hello'",
+    ops: [{ retain: 1 }, { insert: "Hello" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 在位置 2 插入 'World'",
+    ops: [{ retain: 2 }, { insert: "World" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 7: insertAndDeleteOverlap
+ * 描述：一个用户插入文本，另一个用户删除重叠区域，测试插入删除重叠冲突
+ */
+export const insertAndDeleteOverlap: TestCase[] = [
+  {
+    description: "用户 A 在位置 1 插入 'Test'",
+    ops: [{ retain: 1 }, { insert: "Test" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 删除位置 0-3 的字符",
+    ops: [{ retain: 0 }, { delete: 3 }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 8: formatAndContentConflict
+ * 描述：一个用户设置格式，另一个用户修改内容，测试格式与内容混合冲突
+ */
+export const formatAndContentConflict: TestCase[] = [
+  {
+    description: "用户 A 设置第 0-4 字符为 bold",
+    ops: [{ retain: 0 }, { retain: 4, attributes: { bold: true } }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 在位置 2 插入 'New'",
+    ops: [{ retain: 2 }, { insert: "New" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 9: multipleFormatConflict
+ * 描述：两个用户对相同文本设置不同格式属性，测试多属性格式冲突
+ */
+export const multipleFormatConflict: TestCase[] = [
+  {
+    description: "用户 A 设置第 0-4 字符为 bold 和 red",
+    ops: [
+      { retain: 0 },
+      { retain: 4, attributes: { bold: true, color: "red" } },
+    ],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 设置第 0-4 字符为 italic 和 blue",
+    ops: [
+      { retain: 0 },
+      { retain: 4, attributes: { italic: true, color: "blue" } },
+    ],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 10: sequentialOperations
+ * 描述：两个用户进行连续操作，测试操作序列的正确性
+ */
+export const sequentialOperations: TestCase[] = [
+  {
+    description: "用户 A 在位置 0 插入 'First'",
+    ops: [{ retain: 0 }, { insert: "First" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 100,
+  },
+  {
+    description: "用户 A 在位置 5 插入 'Second'",
+    ops: [{ retain: 5 }, { insert: "Second" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 200,
+  },
+  {
+    description: "用户 B 在位置 0 插入 'Third'",
+    ops: [{ retain: 0 }, { insert: "Third" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 150,
+  },
+];
+
+/**
+ * Case 11: boundaryOperations
+ * 描述：测试边界情况，如空文档、单字符文档的操作
+ */
+export const boundaryOperations: TestCase[] = [
+  {
+    description: "用户 A 在空文档插入 'A'",
+    ops: [{ insert: "A" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 在空文档插入 'B'",
+    ops: [{ insert: "B" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 12: largeTextOperations
+ * 描述：测试大文本操作的性能和处理
+ */
+export const largeTextOperations: TestCase[] = [
+  {
+    description: "用户 A 插入大段文本",
+    ops: [
+      { retain: 0 },
+      {
+        insert:
+          "This is a very long text that tests the system's ability to handle large operations. ",
+      },
+    ],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 在大文本中间插入内容",
+    ops: [{ retain: 25 }, { insert: "INSERTED " }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 13: formatRemovalConflict
+ * 描述：测试格式移除与格式设置的冲突
+ */
+export const formatRemovalConflict: TestCase[] = [
+  {
+    description: "用户 A 移除第 0-4 字符的 bold 格式",
+    ops: [{ retain: 0 }, { retain: 4, attributes: { bold: null } }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 设置第 0-4 字符为 bold",
+    ops: [{ retain: 0 }, { retain: 4, attributes: { bold: true } }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
+
+/**
+ * Case 14: mixedOperations
+ * 描述：混合操作测试，包含插入、删除、格式设置
+ */
+export const mixedOperations: TestCase[] = [
+  {
+    description: "用户 A 插入文本并设置格式",
+    ops: [{ retain: 0 }, { insert: "Mixed", attributes: { bold: true } }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 500,
+  },
+  {
+    description: "用户 B 删除部分内容并插入新内容",
+    ops: [{ retain: 1 }, { delete: 2 }, { insert: "New" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 500,
+  },
+];
