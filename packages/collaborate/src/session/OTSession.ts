@@ -2,6 +2,7 @@ import Delta from "quill-delta";
 import { DocumentModel } from "../model/DocumentModel";
 import { OTEngine } from "../engine/OTEngine";
 import { ClientMessage } from "../transport";
+import { AttributeConflictResolver } from "../utils/AttributeConflictResolver";
 
 /**
  * 表示一个客户端的协同会话（OT Session）
@@ -50,13 +51,6 @@ export class OTSession {
   }
 
   /** 本地提交：立即 apply 到文档，同时记录为未确认状态 */
-  // commitLocal(msg: ClientMessage<Delta>): void {
-  //   console.log(`[OTSession] commitLocal: ${JSON.stringify(msg.data)}`);
-  //   this.unAckOps.push(msg);
-  //   const op: Delta = msg.data as Delta;
-  //   this.base = this.base.compose(op);
-  //   this.document.apply(op); // 增量更新，无需 rebuild
-  // }
   commitLocal(msg: ClientMessage<Delta>): void {
     console.log(`[OTSession] commitLocal: ${JSON.stringify(msg.data)}`);
 
@@ -66,7 +60,8 @@ export class OTSession {
     // 更新 unAckOps 中的操作
     const cleanedMsg = { ...msg, data: cleanedOp };
     this.unAckOps.push(cleanedMsg);
-    this.document.apply(cleanedOp); // 只更新视图，不动 base
+    // 只更新视图，不动 base
+    this.document.apply(cleanedOp);
   }
 
   /**
@@ -89,18 +84,26 @@ export class OTSession {
 
     console.log(`[OTSession] transformed: ${JSON.stringify(transformed)}`);
 
-    // 将 transform 后的远端操作应用到 base
-    this.base = this.base.compose(transformed);
+    // 检查并合并属性冲突
+    const mergedDelta = AttributeConflictResolver.mergeAttributeConflicts(
+      cleanedRemoteOp,
+      transformed,
+      this.unAckOps,
+      "current" // 客户端优先采用当前操作（本地优先）
+    );
+
+    // 将合并后的远端操作应用到 base
+    this.base = this.base.compose(mergedDelta);
 
     // 本地未确认操作需要被远端操作 transform（反向）
     for (const localMsg of this.unAckOps) {
-      localMsg.data = OTEngine.transform(transformed, localMsg.data);
+      localMsg.data = OTEngine.transform(mergedDelta, localMsg.data);
     }
 
     this.rebuildDocument();
 
     // 通知 UI 更新
-    this.notifyRemoteChange(transformed);
+    this.notifyRemoteChange(mergedDelta);
   }
 
   /**

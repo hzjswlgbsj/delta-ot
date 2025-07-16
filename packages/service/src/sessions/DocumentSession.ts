@@ -1,7 +1,11 @@
 import Delta, { Op } from "quill-delta";
 import { ClientConnection } from "../socket/ClientConnection";
 import { ClientMessage, MessageType } from "../socket/types";
-import { OTEngine, DocumentModel } from "@delta-ot/collaborate";
+import {
+  OTEngine,
+  DocumentModel,
+  AttributeConflictResolver,
+} from "@delta-ot/collaborate";
 import { OpHistoryBuffer } from "./OpHistoryBuffer";
 import { File } from "../db/models/File";
 
@@ -130,8 +134,16 @@ export class DocumentSession {
       console.log("转换后：", JSON.stringify(transformedDelta));
     }
 
+    // 检查并合并属性冲突
+    const mergedDelta = AttributeConflictResolver.mergeAttributeConflicts(
+      cmd.data as Delta,
+      transformedDelta,
+      this.historyBuffer.getAll(),
+      "history" // 服务端优先采用历史操作（先到先得）
+    );
+
     // 2.应用到文档模型
-    const newContent = this.model.apply(transformedDelta);
+    const newContent = this.model.apply(mergedDelta);
     this.isDirty = true;
 
     // 3.序列号递增
@@ -140,7 +152,7 @@ export class DocumentSession {
     // 4.构造广播消息并缓存
     const broadcastCmd: ClientMessage<Delta> = {
       ...cmd,
-      data: transformedDelta,
+      data: mergedDelta,
       sequence: this.sequence,
       timestamp: Date.now(),
     };

@@ -215,6 +215,8 @@ export const formatAndContentConflict: TestCase[] = [
 /**
  * Case 9: multipleFormatConflict
  * 描述：两个用户对相同文本设置不同格式属性，测试多属性格式冲突
+ * 注意：color 属性会冲突，通常后到达的操作会覆盖先到达的操作
+ * 预期结果：bold + italic + 后到达的颜色（取决于网络延迟）
  */
 export const multipleFormatConflict: TestCase[] = [
   {
@@ -234,6 +236,27 @@ export const multipleFormatConflict: TestCase[] = [
     ],
     userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
     delay: 500,
+  },
+];
+
+/**
+ * Case 9.1: attributeConflictStrategy
+ * 描述：专门测试属性冲突解决策略
+ * 用户 A 先设置红色，用户 B 后设置蓝色，测试颜色属性的冲突解决
+ * 预期：最终颜色应该是蓝色（后到达的操作覆盖先到达的）
+ */
+export const attributeConflictStrategy: TestCase[] = [
+  {
+    description: "用户 A 先设置红色（延迟较小）",
+    ops: [{ retain: 0 }, { retain: 4, attributes: { color: "red" } }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 100,
+  },
+  {
+    description: "用户 B 后设置蓝色（延迟较大）",
+    ops: [{ retain: 0 }, { retain: 4, attributes: { color: "blue" } }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 600,
   },
 ];
 
