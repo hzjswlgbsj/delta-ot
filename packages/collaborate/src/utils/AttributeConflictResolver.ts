@@ -32,16 +32,17 @@ export class AttributeConflictResolver {
       return false;
     }
 
-    for (const [key, value] of Object.entries(originalAttrs)) {
+    const hasConflict = Object.entries(originalAttrs).some(([key, value]) => {
       if (!(key in transformedAttrs) || transformedAttrs[key] !== value) {
         console.log(
           `[AttributeConflictResolver] 检测到属性冲突: ${key}=${value} 在 transform 后丢失或改变`
         );
         return true;
       }
-    }
+      return false;
+    });
 
-    return false;
+    return hasConflict;
   }
 
   /**
@@ -80,17 +81,17 @@ export class AttributeConflictResolver {
 
     if (priority === "history") {
       // 合并历史属性，冲突时历史优先
-      for (const [key, value] of Object.entries(historyAttrs)) {
+      Object.entries(historyAttrs).forEach(([key, value]) => {
         if (key in merged) {
           console.log(
             `[AttributeConflictResolver] 属性冲突 ${key}: 历史值=${value}, 当前值=${merged[key]}, 采用历史值`
           );
         }
         merged[key] = value; // 历史优先
-      }
+      });
     } else {
       // 合并当前属性，冲突时当前优先
-      for (const [key, value] of Object.entries(historyAttrs)) {
+      Object.entries(historyAttrs).forEach(([key, value]) => {
         if (!(key in merged)) {
           merged[key] = value; // 只添加不冲突的属性
         } else {
@@ -98,7 +99,7 @@ export class AttributeConflictResolver {
             `[AttributeConflictResolver] 属性冲突 ${key}: 历史值=${value}, 当前值=${merged[key]}, 采用当前值`
           );
         }
-      }
+      });
     }
 
     return merged;
@@ -177,41 +178,49 @@ export class AttributeConflictResolver {
     priority: "history" | "current" = "history"
   ): Delta | null {
     // 从最新到最旧遍历历史操作
-    for (let i = historyOps.length - 1; i >= 0; i--) {
-      const historyOp = historyOps[i];
-      const historyDelta = new Delta(historyOp.data);
+    const reversedHistoryOps = [...historyOps].reverse();
 
-      // 检查是否作用于相同文本范围
-      if (this.isSameTextRange(currentOp, historyDelta)) {
-        // 检查是否都是属性操作
-        if (this.isAttributeConflict(historyDelta)) {
-          console.log(
-            "[AttributeConflictResolver] 找到相同范围的属性操作，尝试合并"
-          );
+    const mergedOp = reversedHistoryOps.reduce<Delta | null>(
+      (result, historyOp) => {
+        if (result) return result; // 如果已经找到结果，直接返回
 
-          // 合并属性
-          const mergedAttributes = this.mergeAttributes(
-            this.extractAttributes(currentOp),
-            this.extractAttributes(historyDelta),
-            priority
-          );
+        const historyDelta = new Delta(historyOp.data);
 
-          if (mergedAttributes) {
-            // 构造合并后的操作
-            const mergedOp = this.constructMergedOperation(
-              currentOp,
-              mergedAttributes
-            );
+        // 检查是否作用于相同文本范围
+        if (this.isSameTextRange(currentOp, historyDelta)) {
+          // 检查是否都是属性操作
+          if (this.isAttributeConflict(historyDelta)) {
             console.log(
-              "[AttributeConflictResolver] 合并结果:",
-              JSON.stringify(mergedOp.ops)
+              "[AttributeConflictResolver] 找到相同范围的属性操作，尝试合并"
             );
-            return mergedOp;
+
+            // 合并属性
+            const mergedAttributes = this.mergeAttributes(
+              this.extractAttributes(currentOp),
+              this.extractAttributes(historyDelta),
+              priority
+            );
+
+            if (mergedAttributes) {
+              // 构造合并后的操作
+              const mergedOp = this.constructMergedOperation(
+                currentOp,
+                mergedAttributes
+              );
+              console.log(
+                "[AttributeConflictResolver] 合并结果:",
+                JSON.stringify(mergedOp.ops)
+              );
+              return mergedOp;
+            }
           }
         }
-      }
-    }
 
-    return null;
+        return null;
+      },
+      null
+    );
+
+    return mergedOp;
   }
 }

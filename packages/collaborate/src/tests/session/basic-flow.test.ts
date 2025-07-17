@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import Delta from "quill-delta";
 import { OTSession } from "../../session/OTSession";
+import { SendCommandType } from "../../transport/types";
 
 describe("OTSession basic flow", () => {
   it("should apply local and remote operations consistently", () => {
@@ -10,7 +11,15 @@ describe("OTSession basic flow", () => {
     const opA = new Delta().retain(0).insert("A");
 
     // 用户 A 本地提交操作
-    userA.commitLocal(opA);
+    userA.commitLocal({
+      type: SendCommandType.OP,
+      uuid: "test-op",
+      userId: "A",
+      documentId: "test-doc",
+      sequence: 1,
+      timestamp: Date.now(),
+      data: opA,
+    });
 
     // 模拟 opA 从 A 传到 B，被 B 接收并 transform 应用
     userB.apply(opA);

@@ -75,12 +75,11 @@ export class OTSession {
     const cleanedRemoteOp = this.cleanRetainZero(remoteOp);
 
     // 正确的 OT 逻辑：远端操作需要被所有本地未确认操作 transform
-    let transformed = cleanedRemoteOp;
-    for (const localMsg of this.unAckOps) {
+    const transformed = this.unAckOps.reduce((acc, localMsg) => {
       // 同样清理本地操作中的 retain(0)
       const cleanedLocalOp = this.cleanRetainZero(localMsg.data);
-      transformed = OTEngine.transform(cleanedLocalOp, transformed);
-    }
+      return OTEngine.transform(cleanedLocalOp, acc);
+    }, cleanedRemoteOp);
 
     console.log(`[OTSession] transformed: ${JSON.stringify(transformed)}`);
 
@@ -96,9 +95,9 @@ export class OTSession {
     this.base = this.base.compose(mergedDelta);
 
     // 本地未确认操作需要被远端操作 transform（反向）
-    for (const localMsg of this.unAckOps) {
+    this.unAckOps.forEach((localMsg) => {
       localMsg.data = OTEngine.transform(mergedDelta, localMsg.data);
-    }
+    });
 
     this.rebuildDocument();
 
@@ -117,10 +116,10 @@ export class OTSession {
 
   /** 重建视图文档：= base + 所有未确认操作 */
   private rebuildDocument(): void {
-    let composed = this.base;
-    for (const msg of this.unAckOps) {
-      composed = composed.compose(msg.data);
-    }
+    const composed = this.unAckOps.reduce(
+      (acc, msg) => acc.compose(msg.data),
+      this.base
+    );
     this.document.setContents(composed);
   }
 

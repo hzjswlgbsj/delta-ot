@@ -126,11 +126,11 @@ export class DocumentSession {
       }
 
       // transform 所有未处理历史
-      for (const historyCmd of opsToTransformAgainst) {
+      transformedDelta = opsToTransformAgainst.reduce((acc, historyCmd) => {
         // 同样清理历史操作中的 retain(0)
         const historyDelta = this.cleanRetainZero(new Delta(historyCmd.data));
-        transformedDelta = OTEngine.transform(historyDelta, transformedDelta);
-      }
+        return OTEngine.transform(historyDelta, acc);
+      }, transformedDelta);
       console.log("转换后：", JSON.stringify(transformedDelta));
     }
 
