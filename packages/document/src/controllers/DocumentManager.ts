@@ -60,8 +60,13 @@ export class DocumentManager implements CollaborationMediator {
     this.collaborate.otSession.receiveRemote(delta);
   }
 
-  ackOpById(uuids: string[]) {
-    this.collaborate.otSession.ackByIds(uuids);
+  ackOpById(uuids: string[], broadcastOp?: Delta) {
+    console.log(`[DocumentManager] ackOpById:`, {
+      uuids,
+      broadcastOp: broadcastOp?.ops,
+      hasBroadcastOp: !!broadcastOp,
+    });
+    this.collaborate.otSession.ackByIds(uuids, broadcastOp);
   }
 
   /**

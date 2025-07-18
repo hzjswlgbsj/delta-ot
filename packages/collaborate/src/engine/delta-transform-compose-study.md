@@ -254,15 +254,15 @@ while (iterA.hasNext() || iterB.hasNext()) {
 
 整个遍历逻辑可以拆分成三大分支：
 
-1. **🟢 this 是 insert**
+1. **this 是 insert**
 
    - 如果当前 op 是 thisDelta 的 insert，并且具有优先权，则直接 retain（因为内容已经插入过，光标需要偏移）
 
-2. **🔵 other 是 insert**
+2. **other 是 insert**
 
    - 如果对方插入内容，则将其加入结果中（插入内容不冲突，应该保留）
 
-3. **🟡 双方都不是 insert**
+3. **双方都不是 insert**
    - 通常是 retain 或 delete，对齐处理每一小段，判断谁删除、谁保留、谁需要合并样式/嵌入
 
 ### 方法签名
@@ -304,7 +304,7 @@ transform(arg: number | Delta, priority = false): typeof arg {
   const delta = new Delta();                   // 最终结果
 
   while (thisIter.hasNext() || otherIter.hasNext()) {
-    // 🟢 分支 1：this 是 insert
+    // 分支 1：this 是 insert
     if (
       thisIter.peekType() === 'insert' &&
       (priority || otherIter.peekType() !== 'insert')
@@ -313,13 +313,13 @@ transform(arg: number | Delta, priority = false): typeof arg {
       delta.retain(Op.length(thisIter.next()));
     }
 
-    // 🔵 分支 2：other 是 insert
+    // 分支 2：other 是 insert
     else if (otherIter.peekType() === 'insert') {
       // 对方插入内容优先级更高，直接插入到结果中
       delta.push(otherIter.next());
     }
 
-    // 🟡 分支 3：两边都不是 insert（可能是 retain / delete）
+    // 分支 3：两边都不是 insert（可能是 retain / delete）
     else {
       const length = Math.min(thisIter.peekLength(), otherIter.peekLength());
       const thisOp = thisIter.next(length);

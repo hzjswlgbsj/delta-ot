@@ -3,8 +3,36 @@ import Delta from "quill-delta";
 /**
  * 属性冲突解决工具类
  *
- * 用于检测和合并 Quill-delta 操作中的属性冲突
- * 服务端和客户端都可以复用这个工具类
+ * 用于检测和合并 Quill-delta 操作中的属性冲突，服务端和客户端都可复用。
+ *
+ * 为什么需要这个工具类？
+ * Quill Delta 的 transform 方法在处理属性冲突时，如果遇到相同属性，
+ * 会根据 transform 的参数决定优先级，但实际协同场景下，网络顺序不可控，
+ * 不能简单依赖 transform 的参数来保证一致性。
+ *
+ * 典型场景：
+ * 当前文档内容：[{"insert": "base"}]
+ * 客户端A操作：[{"retain": 4, "attributes": {"bold": true, "color": "red"}}]
+ * 客户端B操作：[{"retain": 4, "attributes": {"italic": true, "color": "blue"}}]
+ *
+ * 如果没有冲突解决：
+ * - A先到，B后到：A最终内容 [{"retain": 4, "attributes": {"bold": true, "italic": true, "color": "red"}}]
+ *   B最终内容 [{"retain": 4, "attributes": {"bold": true, "italic": true}}]（B的color丢失）
+ * - B先到，A后到：同理，A会丢失部分属性
+ * - 这样会导致不同客户端看到的内容不一致
+ *
+ * 解决方案：
+ * 通过本工具类，服务端和客户端都可采用统一的冲突合并策略。
+ * 策略可选：
+ *   - preferCurrent=false（默认，先到优先）：谁先到保留谁
+ *   - preferCurrent=true（后到优先）：谁后到保留谁
+ * 推荐后到优先，更符合用户直觉。
+ *
+ * 使用后到优先策略：
+ * - 无论A先到还是B先到，最终所有客户端内容都为：
+ *   [{"retain": 4, "attributes": {"bold": true, "italic": true, "color": "blue"}}]（后到的color覆盖）
+ *
+ * 你可以通过 mergeAttributeConflicts 的 preferCurrent 参数切换策略。
  */
 export class AttributeConflictResolver {
   /**
@@ -69,18 +97,18 @@ export class AttributeConflictResolver {
    *
    * @param currentAttrs 当前属性
    * @param historyAttrs 历史属性
-   * @param priority 优先级策略：'history' | 'current'，默认为 'history'
+   * @param preferCurrent 是否后到优先，true 表示后到优先，false 表示先到优先
    * @returns 合并后的属性
    */
   static mergeAttributes(
     currentAttrs: Record<string, any>,
     historyAttrs: Record<string, any>,
-    priority: "history" | "current" = "history"
+    preferCurrent: boolean = false
   ): Record<string, any> | null {
     const merged = { ...currentAttrs };
 
-    if (priority === "history") {
-      // 合并历史属性，冲突时历史优先
+    if (!preferCurrent) {
+      // 先到优先（历史优先）
       Object.entries(historyAttrs).forEach(([key, value]) => {
         if (key in merged) {
           console.log(
@@ -90,7 +118,7 @@ export class AttributeConflictResolver {
         merged[key] = value; // 历史优先
       });
     } else {
-      // 合并当前属性，冲突时当前优先
+      // 后到优先（当前优先）
       Object.entries(historyAttrs).forEach(([key, value]) => {
         if (!(key in merged)) {
           merged[key] = value; // 只添加不冲突的属性
@@ -128,14 +156,14 @@ export class AttributeConflictResolver {
    * @param originalOp 原始操作
    * @param transformedOp transform 后的操作
    * @param historyOps 历史操作列表（用于查找相同范围的操作）
-   * @param priority 优先级策略：'history' | 'current'，默认为 'history'
+   * @param preferCurrent 是否后到优先，true 表示后到优先，false 表示先到优先
    * @returns 处理后的操作（合并后的操作或原始操作）
    */
   static mergeAttributeConflicts(
     originalOp: Delta,
     transformedOp: Delta,
     historyOps: Array<{ data: Delta }> = [],
-    priority: "history" | "current" = "history"
+    preferCurrent: boolean = false
   ): Delta {
     // 检查是否检测到属性冲突
     if (
@@ -150,7 +178,7 @@ export class AttributeConflictResolver {
       const mergedOp = this.mergeAttributeConflictsWithHistory(
         originalOp,
         historyOps,
-        priority
+        preferCurrent
       );
 
       if (mergedOp) {
@@ -175,7 +203,7 @@ export class AttributeConflictResolver {
   private static mergeAttributeConflictsWithHistory(
     currentOp: Delta,
     historyOps: Array<{ data: Delta }>,
-    priority: "history" | "current" = "history"
+    preferCurrent: boolean = false
   ): Delta | null {
     // 从最新到最旧遍历历史操作
     const reversedHistoryOps = [...historyOps].reverse();
@@ -198,7 +226,7 @@ export class AttributeConflictResolver {
             const mergedAttributes = this.mergeAttributes(
               this.extractAttributes(currentOp),
               this.extractAttributes(historyDelta),
-              priority
+              preferCurrent
             );
 
             if (mergedAttributes) {

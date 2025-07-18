@@ -139,7 +139,7 @@ export class DocumentSession {
       cmd.data as Delta,
       transformedDelta,
       this.historyBuffer.getAll(),
-      "history" // 服务端优先采用历史操作（先到先得）
+      true // 服务端采用后到优先策略
     );
 
     // 2.应用到文档模型

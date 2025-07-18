@@ -40,72 +40,52 @@ describe("AttributeConflictResolver", () => {
   });
 
   it("should merge attributes with history priority", () => {
-    console.log("=== 历史优先属性合并测试 ===");
-
     const currentAttrs = { color: "blue", bold: true };
     const historyAttrs = { color: "red", italic: true };
-
-    const merged = AttributeConflictResolver.mergeAttributes(
-      currentAttrs,
-      historyAttrs,
-      "history"
-    );
-
-    console.log("当前属性:", currentAttrs);
-    console.log("历史属性:", historyAttrs);
-    console.log("合并结果:", merged);
-
     // 历史优先：color 应该采用历史值 'red'，bold 和 italic 都保留
-    expect(merged).toEqual({ color: "red", bold: true, italic: true });
-  });
-
-  it("should merge attributes with current priority", () => {
-    console.log("=== 当前优先属性合并测试 ===");
-
-    const currentAttrs = { color: "blue", bold: true };
-    const historyAttrs = { color: "red", italic: true };
-
     const merged = AttributeConflictResolver.mergeAttributes(
       currentAttrs,
       historyAttrs,
-      "current"
+      false
     );
-
-    console.log("当前属性:", currentAttrs);
-    console.log("历史属性:", historyAttrs);
-    console.log("合并结果:", merged);
-
-    // 当前优先：color 应该采用当前值 'blue'，italic 添加
-    expect(merged).toEqual({ color: "blue", bold: true, italic: true });
+    expect(merged).toEqual({ color: "red", bold: true, italic: true });
+    // 后到优先：color 应该采用当前值 'blue'，bold 和 italic 都保留
+    const mergedCurrent = AttributeConflictResolver.mergeAttributes(
+      currentAttrs,
+      historyAttrs,
+      true
+    );
+    expect(mergedCurrent).toEqual({ color: "blue", bold: true, italic: true });
   });
 
   it("should merge attribute conflicts with history operations", () => {
-    console.log("=== 历史操作属性冲突合并测试 ===");
-
-    const originalOp = new Delta().retain(4, { color: "blue", italic: true });
-    const transformedOp = new Delta().retain(4, { italic: true }); // color 被丢弃
-
-    // 模拟历史操作
+    const currentOp = new Delta().retain(4, { color: "blue", italic: true });
+    const transformedOp = new Delta().retain(4, { italic: true });
     const historyOps = [
       { data: new Delta().retain(4, { color: "red", bold: true }) },
     ];
-
+    // 历史优先
     const mergedOp = AttributeConflictResolver.mergeAttributeConflicts(
-      originalOp,
+      currentOp,
       transformedOp,
       historyOps,
-      "history"
+      false
     );
-
-    console.log("原始操作:", JSON.stringify(originalOp.ops));
-    console.log("Transform后操作:", JSON.stringify(transformedOp.ops));
-    console.log("历史操作:", JSON.stringify(historyOps[0].data.ops));
-    console.log("合并后操作:", JSON.stringify(mergedOp.ops));
-
-    // 应该合并为：color: "red" (历史优先), italic: true, bold: true
     const expectedAttrs = { color: "red", italic: true, bold: true };
     const retainOp = mergedOp.ops.find((op) => op.retain && op.attributes);
     expect(retainOp?.attributes).toEqual(expectedAttrs);
+    // 后到优先
+    const mergedOpCurrent = AttributeConflictResolver.mergeAttributeConflicts(
+      currentOp,
+      transformedOp,
+      historyOps,
+      true
+    );
+    const expectedAttrsCurrent = { color: "blue", italic: true, bold: true };
+    const retainOpCurrent = mergedOpCurrent.ops.find(
+      (op) => op.retain && op.attributes
+    );
+    expect(retainOpCurrent?.attributes).toEqual(expectedAttrsCurrent);
   });
 
   it("should return original operation when no conflicts detected", () => {

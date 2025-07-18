@@ -38,8 +38,14 @@ export class WebsocketController {
 
         // 这里已经是 UI 层的通知了，操作转换已经在下层做好了，所以这里需要排除自己
         if (cmd.userId === this.options.userInfo.userId) {
-          // 已广播自己的操作，进行 ack
-          this.mediator.ackOpById([cmd.uuid]);
+          // 已广播自己的操作，进行 ack，并传递服务端广播的最终操作
+          console.log(`[WebsocketController] 收到自己的操作确认:`, {
+            uuid: cmd.uuid,
+            userId: cmd.userId,
+            data: cmd.data?.ops,
+            isOwnOperation: true,
+          });
+          this.mediator.ackOpById([cmd.uuid], cmd.data);
           return;
         }
         this.mediator.handleRemoteOp(cmd.data);

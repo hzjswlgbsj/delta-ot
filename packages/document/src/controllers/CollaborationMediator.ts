@@ -11,7 +11,7 @@ export interface CollaborationMediator {
   handleRemoteOp(delta: Delta): void;
 
   /** 清理当前客户端自己发出的未确认的操作 */
-  ackOpById(uuid: string[]): void;
+  ackOpById(uuid: string[], broadcastOp?: Delta): void;
 
   /**
    * 应用服务端下发的 KeyFrame 快照（例如重连、初始加载）

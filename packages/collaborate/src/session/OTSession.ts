@@ -88,7 +88,7 @@ export class OTSession {
       cleanedRemoteOp,
       transformed,
       this.unAckOps,
-      "current" // 客户端优先采用当前操作（本地优先）
+      true // 客户端采用后到优先策略
     );
 
     // 将合并后的远端操作应用到 base
@@ -107,10 +107,30 @@ export class OTSession {
 
   /**
    * 服务端确认 ack 后，根据 uuid 精确移除本地未确认的 op
+   * 同时应用服务端广播的最终操作到本地文档
+   *
+   * @param uuids 被确认的操作 UUID 列表
+   * @param broadcastOp 服务端广播的最终操作（可选，如果提供则应用此操作）
    */
-  ackByIds(uuids: string[]): void {
+  ackByIds(uuids: string[], broadcastOp?: Delta): void {
     if (uuids.length === 0) return;
+
+    // 移除已确认的操作
     this.unAckOps = this.unAckOps.filter((msg) => !uuids.includes(msg.uuid));
+
+    // 如果提供了服务端广播的操作，则应用它
+    if (broadcastOp) {
+      console.log(
+        `[OTSession] ackByIds: 应用服务端广播操作 ${JSON.stringify(
+          broadcastOp
+        )}`
+      );
+      // 清理 retain(0) 操作
+      const cleanedBroadcastOp = this.cleanRetainZero(broadcastOp);
+      // 直接应用到 base，因为这是服务端的最终结果
+      this.base = this.base.compose(cleanedBroadcastOp);
+    }
+
     this.rebuildDocument();
   }
 
