@@ -129,6 +129,9 @@ export class OTSession {
       const cleanedBroadcastOp = this.cleanRetainZero(broadcastOp);
       // 直接应用到 base，因为这是服务端的最终结果
       this.base = this.base.compose(cleanedBroadcastOp);
+
+      // 通知 UI 更新，因为应用了服务端广播的操作
+      this.notifyRemoteChange(cleanedBroadcastOp);
     }
 
     this.rebuildDocument();
