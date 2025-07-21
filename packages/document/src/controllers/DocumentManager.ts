@@ -66,7 +66,14 @@ export class DocumentManager implements CollaborationMediator {
       broadcastOp: broadcastOp?.ops,
       hasBroadcastOp: !!broadcastOp,
     });
-    this.collaborate.otSession.ackByIds(uuids, broadcastOp);
+
+    // 先执行 ack 操作，清理已确认的操作
+    this.collaborate.otSession.ackByIds(uuids);
+
+    // 如果有服务端广播操作，单独应用
+    if (broadcastOp) {
+      this.collaborate.otSession.applyServerBroadcast(broadcastOp);
+    }
   }
 
   /**

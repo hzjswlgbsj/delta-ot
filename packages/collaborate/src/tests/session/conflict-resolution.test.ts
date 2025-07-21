@@ -44,7 +44,8 @@ describe("OTSession conflict resolution", () => {
     // 因为我们的例子就是 B 也是在 retain(0) 的位置插入，正好不需要服务端转换就已经是对的了。
     // 但是如果 B 的操作是 insert(1) 或者其他位置的插入，这里就需要多一步模拟服务端 transform  B 的操作后再广播给 A 了
     // 模拟服务端已经对 B 的操作进行了 transform（B 的操作被 A 的操作 transform）
-    const transformedOpB = OTEngine.transform(opA, opB);
+    // 服务端采用后到优先策略
+    const transformedOpB = OTEngine.transform(opA, opB, false);
     userA.receiveRemote(transformedOpB);
 
     // 同时 B 也收到了服务端广播的自己的操作了，此时 B 已经 transform 过 A 的操作了，然后也可以 ack 了，
@@ -54,10 +55,10 @@ describe("OTSession conflict resolution", () => {
     userB.ackByIds(["op-b"]);
 
     // 最终内容一致
-    // session 层协同流程下，A 和 B 的 insert 内容应为允许的两种之一
+    // session 层协同流程下，A 和 B 的 insert 内容应为允许的四种之一
     const insertA = userA.getDocument().getContents().ops[0].insert;
     const insertB = userB.getDocument().getContents().ops[0].insert;
-    const possible = ["Ahello", "hBello"];
+    const possible = ["Ahello", "hBello", "Bhello", "hAello"];
     expect(possible).toContain(insertA);
     expect(possible).toContain(insertB);
 

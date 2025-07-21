@@ -12,6 +12,8 @@ import {
   insertAndDeleteOverlap,
   formatAndContentConflict,
   multipleFormatConflict,
+  attributeConflictStrategy,
+  sequentialOperations,
   query1,
   query2,
 } from "./testCases";
@@ -30,8 +32,8 @@ export default defineComponent({
       );
 
       setTimeout(() => {
-        messageManager1.send(multipleFormatConflict[0]);
-        messageManager2.send(multipleFormatConflict[1]);
+        messageManager1.send(sequentialOperations[0]);
+        messageManager2.send(sequentialOperations[1]);
       }, 3000);
     });
 

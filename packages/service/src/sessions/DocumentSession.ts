@@ -129,18 +129,33 @@ export class DocumentSession {
       transformedDelta = opsToTransformAgainst.reduce((acc, historyCmd) => {
         // 同样清理历史操作中的 retain(0)
         const historyDelta = this.cleanRetainZero(new Delta(historyCmd.data));
-        return OTEngine.transform(historyDelta, acc);
+        // 服务端处理：后到的客户端操作优先级更高
+        return OTEngine.transform(historyDelta, acc, false);
       }, transformedDelta);
       console.log("转换后：", JSON.stringify(transformedDelta));
     }
 
-    // 检查并合并属性冲突
-    const mergedDelta = AttributeConflictResolver.mergeAttributeConflicts(
-      cmd.data as Delta,
-      transformedDelta,
-      this.historyBuffer.getAll(),
-      true // 服务端采用后到优先策略
-    );
+    // 检查并合并属性冲突（只有在确实有属性冲突时才合并）
+    let mergedDelta = transformedDelta;
+    if (
+      AttributeConflictResolver.isAttributeConflict(cmd.data as Delta) &&
+      AttributeConflictResolver.hasAttributeConflict(
+        cmd.data as Delta,
+        transformedDelta
+      )
+    ) {
+      console.log("检测到属性冲突，执行冲突合并");
+      mergedDelta = AttributeConflictResolver.mergeAttributeConflicts(
+        cmd.data as Delta,
+        transformedDelta,
+        this.historyBuffer.getAll(),
+        true // 服务端采用后到优先策略
+      );
+    } else {
+      console.log("无属性冲突，使用 transform 结果");
+    }
+
+    console.log("最终操作：", JSON.stringify(mergedDelta));
 
     // 2.应用到文档模型
     const newContent = this.model.apply(mergedDelta);

@@ -78,25 +78,41 @@ export class OTSession {
     const transformed = this.unAckOps.reduce((acc, localMsg) => {
       // 同样清理本地操作中的 retain(0)
       const cleanedLocalOp = this.cleanRetainZero(localMsg.data);
+      // 客户端处理：本地操作优先级更高（默认值 true）
       return OTEngine.transform(cleanedLocalOp, acc);
     }, cleanedRemoteOp);
 
     console.log(`[OTSession] transformed: ${JSON.stringify(transformed)}`);
 
-    // 检查并合并属性冲突
-    const mergedDelta = AttributeConflictResolver.mergeAttributeConflicts(
-      cleanedRemoteOp,
-      transformed,
-      this.unAckOps,
-      true // 客户端采用后到优先策略
-    );
+    // 检查并合并属性冲突（只有在确实有属性冲突时才合并）
+    let mergedDelta = transformed;
+    if (
+      AttributeConflictResolver.isAttributeConflict(cleanedRemoteOp) &&
+      AttributeConflictResolver.hasAttributeConflict(
+        cleanedRemoteOp,
+        transformed
+      )
+    ) {
+      console.log("[OTSession] 检测到属性冲突，执行合并");
+      mergedDelta = AttributeConflictResolver.mergeAttributeConflicts(
+        cleanedRemoteOp,
+        transformed,
+        this.unAckOps,
+        true // 客户端采用后到优先策略
+      );
+    } else {
+      console.log("[OTSession] 无属性冲突，使用 transform 结果");
+    }
+
+    console.log(`[OTSession] merged: ${JSON.stringify(mergedDelta)}`);
 
     // 将合并后的远端操作应用到 base
     this.base = this.base.compose(mergedDelta);
 
     // 本地未确认操作需要被远端操作 transform（反向）
     this.unAckOps.forEach((localMsg) => {
-      localMsg.data = OTEngine.transform(mergedDelta, localMsg.data);
+      // 客户端处理：远端操作优先级更高
+      localMsg.data = OTEngine.transform(mergedDelta, localMsg.data, false);
     });
 
     this.rebuildDocument();
@@ -107,32 +123,39 @@ export class OTSession {
 
   /**
    * 服务端确认 ack 后，根据 uuid 精确移除本地未确认的 op
-   * 同时应用服务端广播的最终操作到本地文档
    *
    * @param uuids 被确认的操作 UUID 列表
-   * @param broadcastOp 服务端广播的最终操作（可选，如果提供则应用此操作）
    */
-  ackByIds(uuids: string[], broadcastOp?: Delta): void {
+  ackByIds(uuids: string[]): void {
     if (uuids.length === 0) return;
 
     // 移除已确认的操作
     this.unAckOps = this.unAckOps.filter((msg) => !uuids.includes(msg.uuid));
 
-    // 如果提供了服务端广播的操作，则应用它
-    if (broadcastOp) {
-      console.log(
-        `[OTSession] ackByIds: 应用服务端广播操作 ${JSON.stringify(
-          broadcastOp
-        )}`
-      );
-      // 清理 retain(0) 操作
-      const cleanedBroadcastOp = this.cleanRetainZero(broadcastOp);
-      // 直接应用到 base，因为这是服务端的最终结果
-      this.base = this.base.compose(cleanedBroadcastOp);
+    this.rebuildDocument();
+  }
 
-      // 通知 UI 更新，因为应用了服务端广播的操作
-      this.notifyRemoteChange(cleanedBroadcastOp);
-    }
+  /**
+   * 应用服务端广播的最终操作到本地文档
+   * 用于处理属性冲突等需要服务端最终决定的情况
+   *
+   * @param broadcastOp 服务端广播的最终操作
+   */
+  applyServerBroadcast(broadcastOp: Delta): void {
+    console.log(
+      `[OTSession] applyServerBroadcast: 应用服务端广播操作 ${JSON.stringify(
+        broadcastOp
+      )}`
+    );
+
+    // 清理 retain(0) 操作
+    const cleanedBroadcastOp = this.cleanRetainZero(broadcastOp);
+
+    // 直接应用到 base，因为这是服务端的最终结果
+    this.base = this.base.compose(cleanedBroadcastOp);
+
+    // 通知 UI 更新，因为应用了服务端广播的操作
+    this.notifyRemoteChange(cleanedBroadcastOp);
 
     this.rebuildDocument();
   }

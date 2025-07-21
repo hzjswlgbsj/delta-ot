@@ -62,11 +62,11 @@ describe("Client OTSession attribute conflict handling", () => {
     console.log("用户B最终内容:", JSON.stringify(finalContentB.ops));
 
     // 由于客户端采用当前优先策略，两个用户可能看到不同的颜色
-    // 用户A看到蓝色（因为B的操作后到，采用当前值）
-    // 用户B看到红色（因为A的操作后到，采用当前值）
+    // 用户A看到红色（因为A的操作后到，采用当前值）
+    // 用户B看到蓝色（因为B的操作后到，采用当前值）
     // 这是客户端属性冲突处理的预期行为
-    expect(finalContentA.ops[0].attributes?.color).toBe("blue");
-    expect(finalContentB.ops[0].attributes?.color).toBe("red");
+    expect(finalContentA.ops[0].attributes?.color).toBe("red");
+    expect(finalContentB.ops[0].attributes?.color).toBe("blue");
   });
 
   it("should merge non-conflicting attributes correctly", () => {
