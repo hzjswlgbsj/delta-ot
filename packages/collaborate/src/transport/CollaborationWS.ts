@@ -10,6 +10,7 @@ import {
 } from "./types";
 import { WebSocketClient } from "./WebSocketClient";
 import { generateUuidV4, safeJsonParse } from "../utils/common";
+import { getGlobalLogger } from "../../../common/src/utils/Logger";
 
 /** 与客户端通信心跳过程中没有收到任何回应超过 20s 时，就会认为心跳异常，进而踢出用户 */
 const HEARTBEAT_TIMEOUT = 1000 * 20;
@@ -88,7 +89,8 @@ export class CollaborationWS extends WebSocketClient {
         }
         break;
       default:
-        console.log("[CollaborationWS]", "Received message:", payload);
+        const logger = getGlobalLogger("collaborate");
+        logger.info("Received message:", payload);
         this.msgConsumer.dealCmd(cmd);
         break;
     }
@@ -104,25 +106,29 @@ export class CollaborationWS extends WebSocketClient {
   };
 
   onClosed = () => {
-    console.log("Connection closed");
+    const logger = getGlobalLogger("collaborate");
+    logger.info("Connection closed");
     this.msgConsumer.onClosed();
     this.notRecMsgTimer && clearTimeout(this.notRecMsgTimer);
   };
 
   onConnected = () => {
-    console.log("Connected to collab server");
+    const logger = getGlobalLogger("collaborate");
+    logger.info("Connected to collab server");
     this.onReady();
     this.msgConsumer.onConnected();
   };
 
   onReconnected = () => {
-    console.log("Reconnected to collab server");
+    const logger = getGlobalLogger("collaborate");
+    logger.info("Reconnected to collab server");
     this.onReady(true);
     this.msgConsumer.onReconnected();
   };
 
   onReconnect = () => {
-    console.log("Reconnecting to collab server...");
+    const logger = getGlobalLogger("collaborate");
+    logger.info("Reconnecting to collab server...");
     this.msgConsumer.onReconnect();
     this.notRecMsgTimer && clearTimeout(this.notRecMsgTimer);
   };
@@ -141,7 +147,8 @@ export class CollaborationWS extends WebSocketClient {
     // 重置发送心跳的timer
     this.resetSendHBTimer();
     const cmd = this.generateCmd(type, data);
-    console.log("发送客户端操作：", JSON.stringify(cmd));
+    const logger = getGlobalLogger("collaborate");
+    logger.info("发送客户端操作：", JSON.stringify(cmd));
     this.send(this.encodeCmd(cmd));
     return cmd;
   }

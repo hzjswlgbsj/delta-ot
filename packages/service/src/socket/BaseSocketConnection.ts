@@ -2,6 +2,7 @@ import type { WebSocket } from "ws";
 import { MessageType, HeartbeatType, ClientMessage } from "./types";
 import { safeJsonParse } from "../utils";
 import { ErrorCode } from "../types/error-code";
+import { getServiceLogger } from "../utils/logger";
 
 export abstract class BaseSocketConnection {
   protected ws: WebSocket;
@@ -50,12 +51,14 @@ export abstract class BaseSocketConnection {
     try {
       this.ws.send(msg);
     } catch (err) {
-      console.error("[BaseSocketConnection] send error:", err);
+      const logger = getServiceLogger("socket");
+      logger.error("[BaseSocketConnection] send error:", err);
     }
   }
 
   protected sendError(code: ErrorCode, message: string) {
-    console.warn("[BaseSocketConnection] send error:", code, message);
+    const logger = getServiceLogger("socket");
+    logger.warn("[BaseSocketConnection] send error:", code, message);
     this.send(
       this.encodeCmd({
         type: MessageType.ERROR,

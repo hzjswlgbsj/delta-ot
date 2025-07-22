@@ -1,16 +1,18 @@
 import WebSocket from "ws";
+import { getServiceLogger } from "./utils/logger";
 
+const logger = getServiceLogger("test-client");
 const ws = new WebSocket("ws://localhost:4000");
 
 ws.on("open", () => {
-  console.log("🟢 Connected to server");
+  logger.info("🟢 Connected to server");
   ws.send("Hello from client!");
 });
 
 ws.on("message", (msg) => {
-  console.log("📨 Received:", msg.toString());
+  logger.info("📨 Received:", msg.toString());
 });
 
 ws.on("close", () => {
-  console.log("🔴 Disconnected");
+  logger.info("🔴 Disconnected");
 });

@@ -6,6 +6,7 @@ import {
 import { WebsocketControllerOptions } from "../types/base";
 import Delta from "quill-delta";
 import { CollaborationMediator } from "./CollaborationMediator";
+import { getGlobalLogger } from "../../../common/src/utils/Logger";
 
 export class WebsocketController {
   ws!: CollaborationWS;
@@ -16,19 +17,24 @@ export class WebsocketController {
   ) {}
 
   onConnected() {
-    console.log("[WS] connected");
+    const logger = getGlobalLogger("document");
+    logger.info("[WS] connected");
   }
   onClosed() {
-    console.log("[WS] closed");
+    const logger = getGlobalLogger("document");
+    logger.info("[WS] closed");
   }
   onReconnect() {
-    console.log("[WS] reconnecting");
+    const logger = getGlobalLogger("document");
+    logger.info("[WS] reconnecting");
   }
   onReconnected() {
-    console.log("[WS] reconnected");
+    const logger = getGlobalLogger("document");
+    logger.info("[WS] reconnected");
   }
   onNotRecMsgTimeout() {
-    console.log("[WS] heartbeat timeout");
+    const logger = getGlobalLogger("document");
+    logger.info("[WS] heartbeat timeout");
   }
   dealCmd(cmd) {
     switch (cmd.type) {
@@ -39,7 +45,8 @@ export class WebsocketController {
         // 这里已经是 UI 层的通知了，操作转换已经在下层做好了，所以这里需要排除自己
         if (cmd.userId === this.options.userInfo.userId) {
           // 已广播自己的操作，进行 ack
-          console.log(`[WebsocketController] 收到自己的操作确认:`, {
+          const logger = getGlobalLogger("document");
+          logger.info(`收到自己的操作确认:`, {
             uuid: cmd.uuid,
             userId: cmd.userId,
             data: cmd.data?.ops,
@@ -50,7 +57,7 @@ export class WebsocketController {
           const shouldPassBroadcastOp = this.shouldPassBroadcastOp(cmd.data);
           const broadcastOp = shouldPassBroadcastOp ? cmd.data : undefined;
 
-          console.log(`[WebsocketController] 是否需要传递广播操作:`, {
+          logger.info(`是否需要传递广播操作:`, {
             shouldPassBroadcastOp,
             broadcastOp: broadcastOp?.ops,
           });
@@ -64,7 +71,8 @@ export class WebsocketController {
         this.mediator.handleKeyFrame(cmd.data);
         break;
       default:
-        console.log("暂未处理的信令", cmd);
+        const logger = getGlobalLogger("document");
+        logger.info("暂未处理的信令", cmd);
         break;
     }
   }
@@ -113,7 +121,8 @@ export class WebsocketController {
     );
 
     if (hasAttributeOp) {
-      console.log(`[WebsocketController] 检测到属性操作，需要传递广播操作`);
+      const logger = getGlobalLogger("document");
+      logger.info(`检测到属性操作，需要传递广播操作`);
       return true;
     }
 
@@ -127,14 +136,14 @@ export class WebsocketController {
     );
 
     if (hasOnlyInsertDelete) {
-      console.log(
-        `[WebsocketController] 检测到插入/删除操作，不需要传递广播操作`
-      );
+      const logger = getGlobalLogger("document");
+      logger.info(`检测到插入/删除操作，不需要传递广播操作`);
       return false;
     }
 
     // 默认不传递，避免意外重复应用
-    console.log(`[WebsocketController] 未知操作类型，默认不传递广播操作`);
+    const logger = getGlobalLogger("document");
+    logger.info(`未知操作类型，默认不传递广播操作`);
     return false;
   }
 }

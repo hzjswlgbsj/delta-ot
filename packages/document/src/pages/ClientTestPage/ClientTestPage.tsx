@@ -3,6 +3,7 @@ import { login } from "@/services/user";
 import ClientEditorBox from "@/test-lab/collab/ClientEditorBox";
 import { useRoute } from "vue-router";
 import { Op } from "quill-delta";
+import { initGlobalLogger } from "../../../../common/src/utils/Logger";
 export default defineComponent({
   setup() {
     const route = useRoute();
@@ -23,6 +24,16 @@ export default defineComponent({
         if (res.code !== 0) throw new Error(res.msg || "登录失败");
 
         user.value = res.data.userInfo;
+
+        // 登录成功后初始化Logger
+        console.log(
+          "[ClientTestPage] 登录成功，初始化Logger:",
+          user.value.userName
+        );
+        initGlobalLogger({
+          username: user.value.userName,
+        });
+
         loading.value = false;
       } catch (err: any) {
         error.value = err.message || "未知错误";

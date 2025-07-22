@@ -1,11 +1,14 @@
 import { sequelize } from "./db";
 
+import { getServiceLogger } from "./utils/logger";
+
 async function testConnection() {
+  const logger = getServiceLogger("db");
   try {
     await sequelize.authenticate();
-    console.log("database connected successfully");
+    logger.info("database connected successfully");
   } catch (err) {
-    console.error("database connection failed:", err);
+    logger.error("database connection failed:", err);
   } finally {
     await sequelize.close();
   }

@@ -3,8 +3,10 @@ import { createServer } from "http";
 import bodyParser from "koa-bodyparser";
 import { setupWebSocket } from "./socket";
 import router from "./routes";
+import { getServiceLogger } from "./utils/logger";
 import { PORT } from "./config/env";
 import cors from "@koa/cors";
+import { redisMonitor } from "./utils/redis-monitor";
 
 const app = new Koa();
 
@@ -29,5 +31,9 @@ const server = createServer(app.callback());
 setupWebSocket(server);
 
 server.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  const logger = getServiceLogger("main");
+  logger.info(`🚀 Server running at http://localhost:${PORT}`);
+
+  // 启动Redis内存监控
+  redisMonitor.startMonitoring(2 * 60 * 1000); // 每2分钟监控一次
 });

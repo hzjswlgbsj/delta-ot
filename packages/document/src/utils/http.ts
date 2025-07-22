@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getGlobalLogger } from "../../../common/src/utils/Logger";
 
 const instance = axios.create({
   baseURL: "/api", // 可根据开发环境更改
@@ -8,7 +9,8 @@ const instance = axios.create({
 instance.interceptors.response.use(
   (res) => res.data,
   (err) => {
-    console.error("Request failed", err);
+    const logger = getGlobalLogger("document");
+    logger.error("Request failed", err);
     return Promise.reject(err);
   }
 );

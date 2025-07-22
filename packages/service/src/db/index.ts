@@ -1,5 +1,6 @@
 import { Sequelize } from "sequelize";
 import { DB_HOST, DB_NAME, DB_PASS, DB_USER } from "../config/env";
+import { getServiceLogger } from "../utils/logger";
 
 export const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
   host: DB_HOST,
@@ -10,8 +11,10 @@ export const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
 export const initDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log("Sequelize connected to MySQL.");
+    const logger = getServiceLogger("db");
+    logger.info("Sequelize connected to MySQL.");
   } catch (error) {
-    console.error("Failed to connect to MySQL:", error);
+    const logger = getServiceLogger("db");
+    logger.error("Failed to connect to MySQL:", error);
   }
 };

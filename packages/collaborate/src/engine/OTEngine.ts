@@ -1,4 +1,5 @@
 import Delta from "quill-delta";
+import { getGlobalLogger } from "../../../common/src/utils/Logger";
 
 /**
  * OTSide（操作方，"left" / "right"）在 Operational Transformation（OT） 中是一个非常关键的概念，
@@ -24,14 +25,15 @@ export class OTEngine {
    * const final = base.compose(opA).compose(B′); // => "BAhello"
    */
   static transform(op1: Delta, op2: Delta, priority: boolean = true): Delta {
-    console.log(
-      "[OTEngine] transform: ",
+    const logger = getGlobalLogger("collaborate");
+    logger.info(
+      "transform",
       JSON.stringify(op1),
       JSON.stringify(op2),
       `priority: ${priority}`
     );
     const transformed = op1.transform(op2, priority); // 使用传入的优先级参数
-    console.log(`[OTEngine] transformed: ${JSON.stringify(transformed)}`);
+    logger.info("transformed", JSON.stringify(transformed));
     return transformed;
   }
   /**

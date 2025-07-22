@@ -14,6 +14,7 @@ import { verifyToken } from "../utils/jwt";
 import { ErrorCode } from "../types/error-code";
 import { loggedInUserStore } from "../auth/LoggedInUserStore";
 import { generateUuidV4 } from "../utils";
+import { getServiceLogger } from "../utils/logger";
 
 export class ClientConnection extends BaseSocketConnection {
   private userId = "";
@@ -24,18 +25,21 @@ export class ClientConnection extends BaseSocketConnection {
   }
 
   protected onConnected(): void {
-    console.log("Client connected");
+    const logger = getServiceLogger("socket");
+    logger.info("Client connected");
   }
 
   protected onDisconnected(): void {
-    console.log(`Client disconnected: ${this.userId}`);
+    const logger = getServiceLogger("socket");
+    logger.info(`Client disconnected: ${this.userId}`);
     if (this.documentId) {
       documentSessionManager.removeClientFromDocument(this.documentId, this);
     }
   }
 
   protected onHeartbeatTimeout(): void {
-    console.warn(`💔 Heartbeat timeout for user ${this.userId}`);
+    const logger = getServiceLogger("socket");
+    logger.warn(`💔 Heartbeat timeout for user ${this.userId}`);
     this.onClose();
   }
 
@@ -72,7 +76,8 @@ export class ClientConnection extends BaseSocketConnection {
         this.handleOp(cmd);
         break;
       default:
-        console.warn("⚠️ Unknown message type:", cmd.type);
+        const logger = getServiceLogger("socket");
+        logger.warn("⚠️ Unknown message type:", cmd.type);
     }
   }
 
@@ -127,7 +132,8 @@ export class ClientConnection extends BaseSocketConnection {
     }
 
     documentSessionManager.addClientToDocument(documentId, this);
-    console.log(`User ${userId} joined document ${documentId}`);
+    const logger = getServiceLogger("socket");
+    logger.info(`User ${userId} joined document ${documentId}`);
   }
 
   private handleKeyFrame(cmd: ClientMessage<KeyFramePayload>) {
@@ -135,7 +141,8 @@ export class ClientConnection extends BaseSocketConnection {
     const session = documentSessionManager.getSession(documentId);
 
     if (!session) {
-      console.warn(`No session found for document ${documentId}`);
+      const logger = getServiceLogger("socket");
+      logger.warn(`No session found for document ${documentId}`);
       return;
     }
 

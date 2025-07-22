@@ -31,12 +31,14 @@ export const query1 = new URLSearchParams({
   loginName: "sixty",
   pwd: "000000",
   docId: docId,
+  clientId: "1", // 第一个客户端使用蓝色
 }).toString();
 
 export const query2 = new URLSearchParams({
   loginName: "wangwu",
   pwd: "000000",
   docId: docId,
+  clientId: "2", // 第二个客户端使用绿色
 }).toString();
 
 /**

@@ -3,6 +3,7 @@ import { DocumentModel } from "../model/DocumentModel";
 import { OTEngine } from "../engine/OTEngine";
 import { ClientMessage } from "../transport";
 import { AttributeConflictResolver } from "../utils/AttributeConflictResolver";
+import { getGlobalLogger } from "../../../common/src/utils/Logger";
 
 /**
  * 表示一个客户端的协同会话（OT Session）
@@ -52,7 +53,8 @@ export class OTSession {
 
   /** 本地提交：立即 apply 到文档，同时记录为未确认状态 */
   commitLocal(msg: ClientMessage<Delta>): void {
-    console.log(`[OTSession] commitLocal: ${JSON.stringify(msg.data)}`);
+    const logger = getGlobalLogger("collaborate");
+    logger.info("commitLocal", JSON.stringify(msg.data));
 
     // 清理 retain(0) 操作，避免 transform 问题
     const cleanedOp = this.cleanRetainZero(msg.data as Delta);
@@ -68,8 +70,9 @@ export class OTSession {
    * 接收远端操作，并 transform 后合入 base，再叠加本地未 ack 的操作
    */
   receiveRemote(remoteOp: Delta) {
-    console.log(`[OTSession] receiveRemote: ${JSON.stringify(remoteOp)}`);
-    console.log(`[OTSession] unAckOps: ${JSON.stringify(this.unAckOps)}`);
+    const logger = getGlobalLogger("collaborate");
+    logger.info("receiveRemote", JSON.stringify(remoteOp));
+    logger.info("unAckOps", JSON.stringify(this.unAckOps));
 
     // 清理 retain(0) 操作，避免 transform 问题
     const cleanedRemoteOp = this.cleanRetainZero(remoteOp);
@@ -82,7 +85,7 @@ export class OTSession {
       return OTEngine.transform(cleanedLocalOp, acc);
     }, cleanedRemoteOp);
 
-    console.log(`[OTSession] transformed: ${JSON.stringify(transformed)}`);
+    logger.info("transformed", JSON.stringify(transformed));
 
     // 检查并合并属性冲突（只有在确实有属性冲突时才合并）
     let mergedDelta = transformed;
@@ -93,7 +96,7 @@ export class OTSession {
         transformed
       )
     ) {
-      console.log("[OTSession] 检测到属性冲突，执行合并");
+      logger.info("检测到属性冲突，执行合并");
       mergedDelta = AttributeConflictResolver.mergeAttributeConflicts(
         cleanedRemoteOp,
         transformed,
@@ -101,10 +104,10 @@ export class OTSession {
         true // 客户端采用后到优先策略
       );
     } else {
-      console.log("[OTSession] 无属性冲突，使用 transform 结果");
+      logger.info("无属性冲突，使用 transform 结果");
     }
 
-    console.log(`[OTSession] merged: ${JSON.stringify(mergedDelta)}`);
+    logger.info("merged", JSON.stringify(mergedDelta));
 
     // 将合并后的远端操作应用到 base
     this.base = this.base.compose(mergedDelta);
@@ -142,10 +145,9 @@ export class OTSession {
    * @param broadcastOp 服务端广播的最终操作
    */
   applyServerBroadcast(broadcastOp: Delta): void {
-    console.log(
-      `[OTSession] applyServerBroadcast: 应用服务端广播操作 ${JSON.stringify(
-        broadcastOp
-      )}`
+    const logger = getGlobalLogger("collaborate");
+    logger.info(
+      `applyServerBroadcast: 应用服务端广播操作 ${JSON.stringify(broadcastOp)}`
     );
 
     // 清理 retain(0) 操作

@@ -1,6 +1,7 @@
 import { defineComponent, PropType } from "vue";
 import Delta from "quill-delta";
 import { DocumentManager } from "@/controllers/DocumentManager";
+import { getGlobalLogger } from "../../../../common/src/utils/Logger";
 
 export default defineComponent({
   props: {
@@ -24,7 +25,8 @@ export default defineComponent({
 
     const logContents = () => {
       const contents = props.manager.getEditorContents?.();
-      console.log("[当前文档内容]", contents);
+      const logger = getGlobalLogger("document");
+      logger.info("[当前文档内容]", contents);
     };
 
     return () => (

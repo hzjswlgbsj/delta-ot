@@ -3,6 +3,7 @@ import { useRouter } from "vue-router";
 import styles from "./style.module.less";
 import { login } from "@/services/user";
 import { useUserStore } from "@/store/useUserStore";
+import { initGlobalLogger } from "../../../../common/src/utils/Logger";
 
 export default defineComponent({
   setup() {
@@ -25,8 +26,22 @@ export default defineComponent({
       }
 
       const { token, userInfo } = res.data;
+
+      // 验证用户信息
+      if (!userInfo || !userInfo.userId || !userInfo.userName) {
+        errorMsg.value = "用户信息不完整";
+        return;
+      }
+
       localStorage.setItem("token", token);
+      localStorage.setItem("userInfo", JSON.stringify(userInfo));
       store.setUser(userInfo);
+
+      // 初始化全局日志系统
+      initGlobalLogger({
+        username: userInfo.userName,
+      });
+
       router.push("/");
     };
 

@@ -8,6 +8,7 @@ import {
 } from "@delta-ot/collaborate";
 import { OpHistoryBuffer } from "./OpHistoryBuffer";
 import { File } from "../db/models/File";
+import { getServiceLogger } from "../utils/logger";
 
 /** 表示一个文档的协同会话状态 */
 export class DocumentSession {
@@ -58,7 +59,8 @@ export class DocumentSession {
 
   /** 当前协同用户列表（userId） */
   getUserIds(): string[] {
-    console.log(
+    const logger = getServiceLogger("session");
+    logger.info(
       "当前文档的协同用户列表:",
       JSON.stringify(
         Array.from(this.clients)
@@ -101,22 +103,23 @@ export class DocumentSession {
     const incomingSeq = cmd.sequence;
     const currentSeq = this.sequence;
     const missedCount = currentSeq - incomingSeq;
-    console.log("收到客户端操作：", JSON.stringify(cmd), this.sequence);
+    const logger = getServiceLogger("session");
+    logger.info("收到客户端操作：", JSON.stringify(cmd), this.sequence);
 
     // 清理 retain(0) 操作，避免 transform 问题
     let transformedDelta = this.cleanRetainZero(cmd.data as Delta);
 
     // 1.如果客户端落后，则需要 transform
     if (missedCount > 0) {
-      console.log("转换前：", JSON.stringify(transformedDelta));
+      logger.info("转换前：", JSON.stringify(transformedDelta));
 
       const opsToTransformAgainst = this.historyBuffer.getOpsSince(incomingSeq);
       const availableCount = opsToTransformAgainst.length;
 
       if (availableCount < missedCount) {
         // 历史不足，无法 transform，拒绝该操作
-        console.warn(
-          `[DocumentSession] 客户端 sequence 落后过多：客户端 ${incomingSeq}, 当前 ${currentSeq}，仅找到 ${availableCount} 条历史`
+        logger.warn(
+          `客户端 sequence 落后过多：客户端 ${incomingSeq}, 当前 ${currentSeq}，仅找到 ${availableCount} 条历史`
         );
 
         from.sendCmd(MessageType.NEED_REFRESH, {
@@ -132,7 +135,7 @@ export class DocumentSession {
         // 服务端处理：后到的客户端操作优先级更高
         return OTEngine.transform(historyDelta, acc, false);
       }, transformedDelta);
-      console.log("转换后：", JSON.stringify(transformedDelta));
+      logger.info("转换后：", JSON.stringify(transformedDelta));
     }
 
     // 检查并合并属性冲突（只有在确实有属性冲突时才合并）
@@ -144,7 +147,7 @@ export class DocumentSession {
         transformedDelta
       )
     ) {
-      console.log("检测到属性冲突，执行冲突合并");
+      logger.info("检测到属性冲突，执行冲突合并");
       mergedDelta = AttributeConflictResolver.mergeAttributeConflicts(
         cmd.data as Delta,
         transformedDelta,
@@ -152,10 +155,10 @@ export class DocumentSession {
         true // 服务端采用后到优先策略
       );
     } else {
-      console.log("无属性冲突，使用 transform 结果");
+      logger.info("无属性冲突，使用 transform 结果");
     }
 
-    console.log("最终操作：", JSON.stringify(mergedDelta));
+    logger.info("最终操作：", JSON.stringify(mergedDelta));
 
     // 2.应用到文档模型
     const newContent = this.model.apply(mergedDelta);
@@ -207,16 +210,15 @@ export class DocumentSession {
         },
         { where: { guid: this.documentId } }
       );
-      console.log(
-        `[DocumentSession] 文档 ${this.documentId} 持久化成功`,
+      const logger = getServiceLogger("session");
+      logger.info(
+        `文档 ${this.documentId} 持久化成功`,
         JSON.stringify(content)
       );
       this.isDirty = false;
     } catch (err) {
-      console.error(
-        `[DocumentSession] 文档 ${this.documentId} 持久化失败`,
-        err
-      );
+      const logger = getServiceLogger("session");
+      logger.error(`文档 ${this.documentId} 持久化失败`, err);
     }
   }
 

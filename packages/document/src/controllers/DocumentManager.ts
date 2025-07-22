@@ -5,12 +5,18 @@ import { useDocStore } from "../store";
 import { CollaborationMediator } from "./CollaborationMediator";
 import { KeyFramePayload } from "@/types/cmd";
 import { UserInfo } from "@/types/base";
+import { getGlobalLogger } from "../../../common/src/utils/Logger";
 export class DocumentManager implements CollaborationMediator {
   private websocket!: WebsocketController;
   private collaborate!: CollaborateController;
   private remoteDeltaCallback: ((delta: Delta) => void) | null = null;
 
   async setup(guid: string, userInfo: UserInfo, initialContent?: Delta) {
+    // 验证用户信息
+    if (!userInfo || !userInfo.userId || !userInfo.userName) {
+      throw new Error("用户信息不完整，无法初始化文档管理器");
+    }
+
     this.websocket = new WebsocketController(
       {
         userInfo,
@@ -31,7 +37,8 @@ export class DocumentManager implements CollaborationMediator {
 
     // 注册远端变更回调
     this.collaborate.onRemoteChange((delta) => {
-      console.log(`用户 ${userInfo.userName} 收到远端变更:`, delta);
+      const logger = getGlobalLogger("document");
+      logger.info("主动执行更新编辑器内容", delta);
       this.remoteDeltaCallback?.(delta);
     });
   }
@@ -61,7 +68,8 @@ export class DocumentManager implements CollaborationMediator {
   }
 
   ackOpById(uuids: string[], broadcastOp?: Delta) {
-    console.log(`[DocumentManager] ackOpById:`, {
+    const logger = getGlobalLogger("document");
+    logger.info(`ackOpById:`, {
       uuids,
       broadcastOp: broadcastOp?.ops,
       hasBroadcastOp: !!broadcastOp,
@@ -86,7 +94,8 @@ export class DocumentManager implements CollaborationMediator {
   }
 
   handleKeyFrame(data: KeyFramePayload): void {
-    console.log("[DocumentManager] Applying KeyFrame", data);
+    const logger = getGlobalLogger("document");
+    logger.info("Applying KeyFrame", data);
     const docStore = useDocStore();
     const { sequence, content, userIds } = data;
     this.websocket.ws.sequence = sequence;

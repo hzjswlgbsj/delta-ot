@@ -19,11 +19,29 @@ export default defineComponent({
     const userStore = useUserStore();
 
     const getUser = async () => {
-      const res = await getUserInfo();
-      if (res.code === 0) {
-        userStore.setUser(res.data);
-      } else {
-        throw new Error(res.msg || "获取用户失败");
+      try {
+        const res = await getUserInfo();
+        if (res.code === 0 && res.data) {
+          userStore.setUser(res.data);
+        } else {
+          console.warn("获取用户信息失败:", res.msg);
+          // 如果获取用户信息失败，尝试从localStorage恢复
+          const restoredUser = userStore.restoreUser();
+          if (!restoredUser) {
+            // 如果localStorage中也没有用户信息，重定向到登录页
+            window.location.href = "/login";
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("获取用户信息出错:", error);
+        // 尝试从localStorage恢复
+        const restoredUser = userStore.restoreUser();
+        if (!restoredUser) {
+          // 如果localStorage中也没有用户信息，重定向到登录页
+          window.location.href = "/login";
+          return;
+        }
       }
     };
 
@@ -54,6 +72,12 @@ export default defineComponent({
       editorValue.value = initialDelta;
 
       docManager = new DocumentManager();
+
+      // 确保有用户信息
+      if (!userStore.userInfo) {
+        throw new Error("用户信息不存在，请重新登录");
+      }
+
       docManager.setup(fileInfo.guid, userStore.userInfo, initialDelta);
 
       // 使用 DocumentManager 中封装的监听器

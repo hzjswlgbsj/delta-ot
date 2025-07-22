@@ -4,7 +4,7 @@ import { sequelize } from "../index";
 export class User extends Model {
   public id!: number;
   public userId!: string;
-  public username!: string;
+  public userName!: string;
   public password!: string;
   public avatar?: string;
   public readonly createdAt!: Date;
@@ -27,7 +27,7 @@ User.init(
     userName: {
       type: DataTypes.STRING,
       allowNull: false,
-      field: "username",
+      field: "user_name",
     },
     password: {
       type: DataTypes.STRING,

@@ -1,4 +1,5 @@
 import Delta from "quill-delta";
+import { getGlobalLogger } from "../../../common/src/utils/Logger";
 
 /**
  * 属性冲突解决工具类
@@ -62,8 +63,9 @@ export class AttributeConflictResolver {
 
     const hasConflict = Object.entries(originalAttrs).some(([key, value]) => {
       if (!(key in transformedAttrs) || transformedAttrs[key] !== value) {
-        console.log(
-          `[AttributeConflictResolver] 检测到属性冲突: ${key}=${value} 在 transform 后丢失或改变`
+        const logger = getGlobalLogger("collaborate");
+        logger.info(
+          `检测到属性冲突: ${key}=${value} 在 transform 后丢失或改变`
         );
         return true;
       }
@@ -111,8 +113,9 @@ export class AttributeConflictResolver {
       // 先到优先（历史优先）
       Object.entries(historyAttrs).forEach(([key, value]) => {
         if (key in merged) {
-          console.log(
-            `[AttributeConflictResolver] 属性冲突 ${key}: 历史值=${value}, 当前值=${merged[key]}, 采用历史值`
+          const logger = getGlobalLogger("collaborate");
+          logger.info(
+            `属性冲突 ${key}: 历史值=${value}, 当前值=${merged[key]}, 采用历史值`
           );
         }
         merged[key] = value; // 历史优先
@@ -123,8 +126,9 @@ export class AttributeConflictResolver {
         if (!(key in merged)) {
           merged[key] = value; // 只添加不冲突的属性
         } else {
-          console.log(
-            `[AttributeConflictResolver] 属性冲突 ${key}: 历史值=${value}, 当前值=${merged[key]}, 采用当前值`
+          const logger = getGlobalLogger("collaborate");
+          logger.info(
+            `属性冲突 ${key}: 历史值=${value}, 当前值=${merged[key]}, 采用当前值`
           );
         }
       });
@@ -170,9 +174,10 @@ export class AttributeConflictResolver {
       this.isAttributeConflict(originalOp) &&
       this.hasAttributeConflict(originalOp, transformedOp)
     ) {
-      console.log("[AttributeConflictResolver] 检测到属性冲突，尝试智能合并");
-      console.log("原始操作:", JSON.stringify(originalOp.ops));
-      console.log("Transform后操作:", JSON.stringify(transformedOp.ops));
+      const logger = getGlobalLogger("collaborate");
+      logger.info("检测到属性冲突，尝试智能合并");
+      logger.info("原始操作:", JSON.stringify(originalOp.ops));
+      logger.info("Transform后操作:", JSON.stringify(transformedOp.ops));
 
       // 尝试与历史操作合并属性
       const mergedOp = this.mergeAttributeConflictsWithHistory(
@@ -182,13 +187,11 @@ export class AttributeConflictResolver {
       );
 
       if (mergedOp) {
-        console.log(
-          "[AttributeConflictResolver] 智能合并成功，返回合并后的操作"
-        );
-        console.log("合并后操作:", JSON.stringify(mergedOp.ops));
+        logger.info("智能合并成功，返回合并后的操作");
+        logger.info("合并后操作:", JSON.stringify(mergedOp.ops));
         return mergedOp;
       } else {
-        console.log("[AttributeConflictResolver] 智能合并失败，返回原始操作");
+        logger.info("智能合并失败，返回原始操作");
         return originalOp;
       }
     }
@@ -218,9 +221,8 @@ export class AttributeConflictResolver {
         if (this.isSameTextRange(currentOp, historyDelta)) {
           // 检查是否都是属性操作
           if (this.isAttributeConflict(historyDelta)) {
-            console.log(
-              "[AttributeConflictResolver] 找到相同范围的属性操作，尝试合并"
-            );
+            const logger = getGlobalLogger("collaborate");
+            logger.info("找到相同范围的属性操作，尝试合并");
 
             // 合并属性
             const mergedAttributes = this.mergeAttributes(
@@ -235,10 +237,7 @@ export class AttributeConflictResolver {
                 currentOp,
                 mergedAttributes
               );
-              console.log(
-                "[AttributeConflictResolver] 合并结果:",
-                JSON.stringify(mergedOp.ops)
-              );
+              logger.info("合并结果:", JSON.stringify(mergedOp.ops));
               return mergedOp;
             }
           }

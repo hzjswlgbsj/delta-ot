@@ -1,5 +1,6 @@
 import redis from "../utils/redis";
 import { decodeToken } from "../utils/jwt";
+import { getServiceLogger } from "../utils/logger";
 
 const PREFIX = "user:token:";
 
@@ -22,9 +23,8 @@ class LoggedInUserStore {
     const ttl = exp - now; // 计算剩余过期秒数
 
     if (ttl <= 0) {
-      console.warn(
-        `[LoggedInUserStore] Token 已过期，不再缓存 userId=${userId}`
-      );
+      const logger = getServiceLogger("auth");
+      logger.warn(`Token 已过期，不再缓存 userId=${userId}`);
       return;
     }
 
