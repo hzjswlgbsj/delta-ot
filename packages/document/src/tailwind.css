@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 自定义样式 */
+.test-case-select-dropdown {
+  min-width: 400px !important;
+}
+
+.test-case-select-dropdown .el-select-dropdown__item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 8px 12px;
+}

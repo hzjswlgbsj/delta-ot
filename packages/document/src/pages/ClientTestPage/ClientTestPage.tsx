@@ -42,7 +42,13 @@ export default defineComponent({
 
     onMounted(async () => {
       window.addEventListener("message", (event) => {
-        update.value.splice(0, update.value.length, ...event.data.ops);
+        console.log("收到消息:", event.data);
+        if (event.data && event.data.ops) {
+          update.value.splice(0, update.value.length, ...event.data.ops);
+        } else if (event.data && Array.isArray(event.data)) {
+          // 兼容直接发送ops数组的情况
+          update.value.splice(0, update.value.length, ...event.data);
+        }
       });
       await init();
     });

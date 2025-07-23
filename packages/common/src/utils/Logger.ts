@@ -202,7 +202,7 @@ export class Logger {
     const coloredTitle = `%c${title}`;
     const titleStyle = `color: ${titleColor}; font-weight: bold;`;
 
-    return [coloredTitle, titleStyle, `: ${message}`, ...args];
+    return [coloredTitle, titleStyle, `${message}`, ...args];
   }
 
   /**
