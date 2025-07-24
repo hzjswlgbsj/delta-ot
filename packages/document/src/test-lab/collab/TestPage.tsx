@@ -41,6 +41,8 @@ import {
   networkLatencySimulation,
   multipleUserConflict,
   rapidSuccessiveOperations,
+  rapidSuccessiveOperationsAdvanced,
+  extremeRapidSuccessiveOperations,
   complexFormatMerging,
   partialFormatConflict,
   insertWithFormatConflict,
@@ -82,6 +84,8 @@ const testCases = {
   networkLatencySimulation,
   multipleUserConflict,
   rapidSuccessiveOperations,
+  rapidSuccessiveOperationsAdvanced,
+  extremeRapidSuccessiveOperations,
   complexFormatMerging,
   partialFormatConflict,
   insertWithFormatConflict,
@@ -547,73 +551,98 @@ const currentCases = {
     description: "简单双用户测试 - 两个用户插入操作",
   },
   basicInsertConflict: {
-    description: "基础插入冲突 - 两个用户在相同位置插入不同字符",
+    description: "Case 1: 基础插入冲突 - 两个用户在相同位置插入不同字符",
   },
-  insertAtDifferentPositions: { description: "不同位置插入 - 测试非冲突情况" },
+  insertAtDifferentPositions: {
+    description: "Case 2: 不同位置插入 - 测试非冲突情况",
+  },
   concurrentDeleteAndInsert: {
-    description: "并发删除和插入 - 测试删除/插入冲突",
+    description: "Case 3: 并发删除和插入 - 测试删除/插入冲突",
   },
-  formatConflict: { description: "格式冲突 - 测试属性合并冲突" },
-  deleteConflict: { description: "删除冲突 - 测试删除冲突处理" },
+  formatConflict: { description: "Case 4: 格式冲突 - 测试属性合并冲突" },
+  deleteConflict: { description: "Case 5: 删除冲突 - 测试删除冲突处理" },
   samePositionDeleteConflict: {
-    description: "相同位置删除冲突 - 测试相同位置删除",
+    description: "Case 5.1: 相同位置删除冲突 - 测试相同位置删除",
   },
-  complexInsertConflict: { description: "复杂插入冲突 - 测试复杂插入冲突" },
+  complexInsertConflict: {
+    description: "Case 6: 复杂插入冲突 - 测试复杂插入冲突",
+  },
   insertAndDeleteOverlap: {
-    description: "插入删除重叠 - 测试插入删除重叠冲突",
+    description: "Case 7: 插入删除重叠 - 测试插入删除重叠冲突",
   },
   formatAndContentConflict: {
-    description: "格式内容混合冲突 - 测试格式与内容混合冲突",
+    description: "Case 8: 格式内容混合冲突 - 测试格式与内容混合冲突",
   },
   multipleFormatConflict: {
-    description: "多属性格式冲突 - 测试多属性格式冲突",
+    description: "Case 9: 多属性格式冲突 - 测试多属性格式冲突",
   },
   attributeConflictStrategy: {
-    description: "属性冲突策略 - 测试颜色属性冲突解决",
+    description: "Case 9.1: 属性冲突策略 - 测试颜色属性冲突解决",
   },
-  sequentialOperations: { description: "连续操作 - 测试操作序列的正确性" },
-  boundaryOperations: { description: "边界操作 - 测试边界情况" },
-  largeTextOperations: { description: "大文本操作 - 测试大文本操作的性能" },
+  sequentialOperations: {
+    description: "Case 10: 连续操作 - 测试操作序列的正确性",
+  },
+  boundaryOperations: { description: "Case 11: 边界操作 - 测试边界情况" },
+  largeTextOperations: {
+    description: "Case 12: 大文本操作 - 测试大文本操作的性能",
+  },
   formatRemovalConflict: {
-    description: "格式移除冲突 - 测试格式移除与格式设置的冲突",
+    description: "Case 13: 格式移除冲突 - 测试格式移除与格式设置的冲突",
   },
   mixedOperations: {
-    description: "混合操作 - 包含插入、删除、格式设置的混合操作",
+    description: "Case 14: 混合操作 - 包含插入、删除、格式设置的混合操作",
   },
   networkLatencySimulation: {
-    description: "网络延迟模拟 - 测试不同延迟下的冲突解决",
+    description: "Case 15: 网络延迟模拟 - 测试不同延迟下的冲突解决",
   },
-  multipleUserConflict: { description: "多用户冲突 - 三个用户同时操作" },
+  multipleUserConflict: {
+    description: "Case 16: 多用户冲突 - 三个用户同时操作",
+  },
   rapidSuccessiveOperations: {
-    description: "快速连续操作 - 测试系统在高频操作下的稳定性",
+    description:
+      "Case 17: 快速连续操作 - 测试系统在高频操作下的稳定性 (修复版)",
+  },
+  rapidSuccessiveOperationsAdvanced: {
+    description: "Case 17.5: 高级快速连续操作 - 更复杂的OT算法稳定性测试",
+  },
+  extremeRapidSuccessiveOperations: {
+    description: "Case 17.6: 极端快速连续操作 - 强制制造相同位置冲突测试",
   },
   complexFormatMerging: {
-    description: "复杂格式合并 - 测试多个格式属性的正确合并",
+    description: "Case 18: 复杂格式合并 - 测试多个格式属性的正确合并",
   },
   partialFormatConflict: {
-    description: "部分格式冲突 - 测试重叠但不完全相同的格式范围",
+    description: "Case 19: 部分格式冲突 - 测试重叠但不完全相同的格式范围",
   },
   insertWithFormatConflict: {
-    description: "插入带格式冲突 - 插入带格式的文本与格式设置的冲突",
+    description: "Case 20: 插入带格式冲突 - 插入带格式的文本与格式设置的冲突",
   },
   deleteAcrossFormattedText: {
-    description: "删除跨越格式文本 - 删除跨越格式文本的操作",
+    description: "Case 21: 删除跨越格式文本 - 删除跨越格式文本的操作",
   },
   retainZeroEdgeCases: {
-    description: "retain(0)边界情况 - 测试retain(0)的各种边界情况",
+    description: "Case 22: retain(0)边界情况 - 测试retain(0)的各种边界情况",
   },
   emptyDocumentOperations: {
-    description: "空文档操作 - 空文档上的各种操作测试",
+    description: "Case 23: 空文档操作 - 空文档上的各种操作测试",
   },
   longTextWithFormatting: {
-    description: "长文本格式操作 - 长文本与格式的混合操作",
+    description: "Case 24: 长文本格式操作 - 长文本与格式的混合操作",
   },
   formatRemovalAndAddition: {
-    description: "格式移除与添加 - 格式移除与添加的冲突测试",
+    description: "Case 25: 格式移除与添加 - 格式移除与添加的冲突测试",
   },
-  stressTest: { description: "压力测试 - 大量并发操作" },
-  realWorldScenario: { description: "真实世界场景 - 模拟真实世界的编辑场景" },
-  edgeCaseOperations: { description: "边界情况操作 - 各种边界情况的测试" },
-  formatInheritanceTest: { description: "格式继承测试 - 测试格式继承和传播" },
-  concurrentFormatRemoval: { description: "并发格式移除 - 并发格式移除测试" },
+  stressTest: { description: "Case 26: 压力测试 - 大量并发操作" },
+  realWorldScenario: {
+    description: "Case 27: 真实世界场景 - 模拟真实世界的编辑场景",
+  },
+  edgeCaseOperations: {
+    description: "Case 28: 边界情况操作 - 各种边界情况的测试",
+  },
+  formatInheritanceTest: {
+    description: "Case 29: 格式继承测试 - 测试格式继承和传播",
+  },
+  concurrentFormatRemoval: {
+    description: "Case 30: 并发格式移除 - 并发格式移除测试",
+  },
 };

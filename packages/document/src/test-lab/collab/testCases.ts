@@ -417,6 +417,7 @@ export const multipleUserConflict: TestCase[] = [
 /**
  * Case 17: rapidSuccessiveOperations
  * 描述：快速连续操作，测试系统在高频操作下的稳定性
+ * 修复：使用不同位置的插入，避免相同位置冲突导致的不确定性
  */
 export const rapidSuccessiveOperations: TestCase[] = [
   {
@@ -426,22 +427,110 @@ export const rapidSuccessiveOperations: TestCase[] = [
     delay: 50,
   },
   {
-    description: "用户 A 快速插入 'B'",
-    ops: [{ retain: 1 }, { insert: "B" }],
-    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    description: "用户 B 快速插入 'B'",
+    ops: [{ retain: 1 }, { insert: "B" }], // 在A后面插入
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
     delay: 100,
   },
   {
     description: "用户 A 快速插入 'C'",
-    ops: [{ retain: 2 }, { insert: "C" }],
+    ops: [{ retain: 2 }, { insert: "C" }], // 在AB后面插入
     userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
     delay: 150,
   },
   {
-    description: "用户 B 在中间插入 'X'",
-    ops: [{ retain: 1 }, { insert: "X" }],
+    description: "用户 B 快速插入 'D'",
+    ops: [{ retain: 3 }, { insert: "D" }], // 在ABC后面插入
     userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
     delay: 200,
+  },
+];
+
+/**
+ * Case 17.5: rapidSuccessiveOperationsAdvanced
+ * 描述：更复杂的快速连续操作，测试OT算法在高频冲突下的稳定性
+ * 设计：所有操作都在位置0，通过不同延迟制造冲突
+ */
+export const rapidSuccessiveOperationsAdvanced: TestCase[] = [
+  {
+    description: "用户 A 插入 'A' (50ms)",
+    ops: [{ retain: 0 }, { insert: "A" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 50,
+  },
+  {
+    description: "用户 B 插入 'B' (60ms)",
+    ops: [{ retain: 0 }, { insert: "B" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 60,
+  },
+  {
+    description: "用户 A 插入 'C' (70ms)",
+    ops: [{ retain: 0 }, { insert: "C" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 70,
+  },
+  {
+    description: "用户 B 插入 'D' (80ms)",
+    ops: [{ retain: 0 }, { insert: "D" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 80,
+  },
+  {
+    description: "用户 A 插入 'E' (90ms)",
+    ops: [{ retain: 0 }, { insert: "E" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 90,
+  },
+  {
+    description: "用户 B 插入 'F' (100ms)",
+    ops: [{ retain: 0 }, { insert: "F" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 100,
+  },
+];
+
+/**
+ * Case 17.6: extremeRapidSuccessiveOperations
+ * 描述：极端的快速连续操作，所有操作都设置为相同延迟，强制制造冲突
+ * 设计：所有操作都在位置0，延迟完全相同，测试真正的冲突场景
+ */
+export const extremeRapidSuccessiveOperations: TestCase[] = [
+  {
+    description: "用户 A 插入 'A' (0ms)",
+    ops: [{ retain: 0 }, { insert: "A" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 0,
+  },
+  {
+    description: "用户 B 插入 'B' (0ms)",
+    ops: [{ retain: 0 }, { insert: "B" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 0,
+  },
+  {
+    description: "用户 A 插入 'C' (0ms)",
+    ops: [{ retain: 0 }, { insert: "C" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 0,
+  },
+  {
+    description: "用户 B 插入 'D' (0ms)",
+    ops: [{ retain: 0 }, { insert: "D" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 0,
+  },
+  {
+    description: "用户 A 插入 'E' (0ms)",
+    ops: [{ retain: 0 }, { insert: "E" }],
+    userId: "3bb53883-ef30-4dff-8d18-ff9208e82d26",
+    delay: 0,
+  },
+  {
+    description: "用户 B 插入 'F' (0ms)",
+    ops: [{ retain: 0 }, { insert: "F" }],
+    userId: "7a7f4597-d8ca-4954-a38d-a978190bf8fa",
+    delay: 0,
   },
 ];
 
