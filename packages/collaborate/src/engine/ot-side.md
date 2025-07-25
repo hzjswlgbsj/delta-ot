@@ -97,39 +97,4 @@ transform(opA, opB, side: 'left' | 'right')
 
 但我们后来发现：
 
-✅ 在真实协同架构中，**应该上层根据谁先谁后决定是否 transform，而不是 transform 内部传入 true 或 false 来决定谁让步。**
-
-因此，OTEngine.transform 应该写死成优先侧优先，调用者自己决定是否 transform 谁。
-
----
-
-## 实际工程中怎么做？
-
-实际协同文档系统（如 Google Docs、Notion、腾讯文档、你正在构建的系统）**都会有服务端统一排序和调度 transform 的机制**，这时候你不再依赖 OTSide 来判断优先权，而是依赖：
-
-- 操作的版本号（version）
-- 谁先到服务器，谁先 apply
-- 服务器端统一进行 transform 并广播 transform 后的 op
-- 客户端只负责 apply 自己版本之后的 op，不再做 transform
-
-### 示例
-
-```plaintext
-Client A / B          →  Server          → All Clients
-  op v=1  ---->         seq=1       ----> op v=1
-  op v=1  ---->         transform   ----> op v=2 (transformed)
-```
-
-服务端统一使用 `transform(opEarlier, opLater)`，后者永远适配前者，客户端只接收最终 transform 后的结果。
-
----
-
-## 🔚 总结
-
-- OTSide 是「点对点」调试用的临时机制，不应出现在正式架构中。
-- transform 函数只负责“后来的操作适配已有结果”，永远 `priority = true`
-- 冲突优先级（谁先谁后）应由 OTSession / Server 决定是否 transform，而不是 transform 本身控制谁优先
-- 正确的 OT 实现中 transform 是幂等、纯函数，无副作用，使用一致、稳定
-- 后续设计中建议统一采用 `transform(opEarlier, opLater)` 接口定义，优先侧由调用者决定
-
-这为未来加入 operation version、server ordering、client rollback 等机制打下了干净的基础。
+在真实协同架构中，**应该上层根据谁先谁后决定是否 transform，而不是 transform 内部传入 true 或 false 来决定谁让步。**

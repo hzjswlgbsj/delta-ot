@@ -4,7 +4,7 @@
 
 ---
 
-## 🧠 设计目标
+## 设计目标
 
 - 构建具备完整状态管理的 OT 客户端模型
 - 支持本地编辑、远端变更、ack 应答流程
@@ -12,7 +12,7 @@
 
 ---
 
-## 🧩 状态组成
+## 状态组成
 
 | 状态变量            | 含义                                                                   |
 | ------------------- | ---------------------------------------------------------------------- |
@@ -20,11 +20,11 @@
 | `unacknowledgedOps` | 本地已提交、尚未被服务器 ack 的 Delta 队列（按顺序）                   |
 | `document`          | 当前用户可见状态，初始为 base + unacknowledgedOps，后续直接 apply 更新 |
 
-> ✅ 注意：当前实现中 `base` 实际上扮演了 OT 理论中的 Shadow Document 角色
+> 注意：当前实现中 `base` 实际上扮演了 OT 理论中的 Shadow Document 角色
 
 ---
 
-## 📚 关于 Shadow Document 的说明
+## 关于 Shadow Document 的说明
 
 ### 什么是 Shadow？
 
@@ -44,7 +44,7 @@ Shadow Document（影子文档）是客户端保存的一份与服务器一致�
 
 ---
 
-## ⚙️ 方法说明（简化流程）
+## 方法说明（简化流程）
 
 ### `commitLocal(op: Delta)`
 
@@ -71,11 +71,11 @@ Shadow Document（影子文档）是客户端保存的一份与服务器一致�
 - 清空 `unacknowledgedOps`
 - document 重建（= base）
 
-> ✅ 当前实现直接清空队列，未来可精确处理 ack 某一部分操作（根据 hash、opId 等）
+> 当前实现直接清空队列，未来可精确处理 ack 某一部分操作（根据 hash、opId 等）
 
 ---
 
-## 📁 延伸思考：localOps、remoteOps 与未来设计
+## 延伸思考：localOps、remoteOps 与未来设计
 
 在真实在线协同场景中，客户端可能会同时出现：
 
@@ -97,26 +97,3 @@ Shadow Document（影子文档）是客户端保存的一份与服务器一致�
 - 到达客户端后仍需再次 transform（因为客户端可能有未 ack 本地操作）
 
 ---
-
-## ✅ 当前简化假设与后续演进
-
-当前实现仅保留 `unacknowledgedOps`，尚未引入：
-
-- `localOps`：尚未 commit 的 pending 编辑缓冲
-- `remoteOps`：按时间排队的远端广播消息
-- `version`：服务端 / 本地同步版本号
-
-未来可以考虑如下演进：
-
-- 增加 precise ack（基于 op hash / id）
-- 引入 version 管理
-- 模拟或引入 `localOps` 与 `remoteOps` 管理机制
-- 加入测试网络（SimulatedNetwork）模拟复杂并发冲突顺序
-
----
-
-## ✅ 总结
-
-当前 OTSession 是一个结构清晰的简化实现，使用 `base + unacknowledgedOps` 管理协同状态，具备良好扩展性。通过引入 transform、ack、apply 等概念可支撑真实协同编辑模型。
-
-我们将在后续阶段通过 `SimulatedNetwork` 和服务端机制逐步提升其复杂度与健壮性。
