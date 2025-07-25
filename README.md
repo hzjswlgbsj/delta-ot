@@ -224,11 +224,6 @@ cd packages/document
 pnpm dev
 ```
 
-### 访问应用
-
-- 前端地址：<http://localhost:5173>
-- 服务端地址：<http://localhost:3000>
-
 ## 测试与验证
 
 ### OT 算法测试
@@ -279,7 +274,7 @@ pnpm test
 - **OT 方案**：本项目 - 基于 Quill Delta 的操作转换算法
 - **CRDT 方案**：[butterfly](https://github.com/hzjswlgbsj/butterfly) - 基于 Yjs 的无冲突复制数据类型
 
-### 开发指南
+### 各模块职责说明
 
 - [OT 引擎开发](./packages/collaborate/src/engine/README.md)
 - [会话管理开发](./packages/collaborate/src/session/README.md)
@@ -306,7 +301,7 @@ delta-ot/
 └── README.md          # 项目说明
 ```
 
-### 开发流程
+### 建议顺序
 
 1. **理解架构**：阅读 [Architecture.md](./Architecture.md) 了解整体设计
 2. **学习算法**：从 [OT 算法原理](./packages/collaborate/src/engine/delta-transform-compose-study.md) 开始
@@ -321,23 +316,9 @@ delta-ot/
 - 为每个模块编写详细的设计文档
 - 保持测试覆盖率
 
-## 贡献指南
+相关命令请直接查看各模块的 package.json 文件的 scripts 字段。
 
-### 开发环境设置
-
-```bash
-# 克隆项目
-git clone https://github.com/hzjswlgbsj/delta-ot.git
-cd delta-ot
-
-# 安装依赖
-pnpm install
-
-# 启动开发环境
-pnpm dev
-```
-
-### 相关项目
+## 相关项目
 
 - [butterfly](https://github.com/hzjswlgbsj/butterfly) - 基于 CRDT 的协同编辑实现，与本项目形成完整的技术对比
 
