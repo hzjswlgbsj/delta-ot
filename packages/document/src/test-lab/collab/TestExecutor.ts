@@ -140,10 +140,15 @@ export class TestExecutor {
 
             messageManager.send(messageData);
 
+            // 格式化操作数据用于显示
+            const opsStr = JSON.stringify(operation.ops)
+              .replace(/"/g, "")
+              .replace(/,/g, ", ");
+
             this.config.onProgress?.(
               `执行操作: ${operation.description} (客户端 ${
                 clientIndex + 1
-              }, 延迟 ${delay}ms)`
+              }, 延迟 ${delay}ms) - Ops: [${opsStr}]`
             );
           } catch (error) {
             console.error(`执行操作失败: ${operation.description}`, error);

@@ -515,6 +515,7 @@ export default defineComponent({
                           style={{
                             backgroundColor: config.color,
                             borderColor: config.color,
+                            color: "white",
                           }}
                         >
                           {config.color}
