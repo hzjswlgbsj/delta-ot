@@ -422,6 +422,8 @@ pnpm test
 - [OT 算法原理](./packages/collaborate/src/engine/delta-transform-compose-study.md)
 - [协同编辑架构设计](./Architecture.md)
 - [WebSocket 信令设计](./packages/collaborate/src/transport/signaling-design.md)
+- [光标同步协议设计](./packages/collaborate/src/transport/cursor-sync-design.md)
+- [光标渲染器设计](./packages/document/src/components/cursor-renderer-design.md)
 
 ### 技术路线对比
 
