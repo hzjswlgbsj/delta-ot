@@ -2,6 +2,7 @@
 import { defineComponent, onMounted, ref, reactive, watch } from "vue";
 import IframeMessageManager from "../utils/IframeMessageManager";
 import { TestExecutor, createTestExecutor } from "./TestExecutor";
+import FloatingTestPanel from "./FloatingTestPanel";
 import {
   ElCard,
   ElSelect,
@@ -18,7 +19,6 @@ import {
   VideoPause,
   Refresh,
   Setting,
-  InfoFilled,
 } from "@element-plus/icons-vue";
 import {
   basicInsertConflict,
@@ -134,6 +134,8 @@ export default defineComponent({
     const messageManagers = ref<IframeMessageManager[]>([]);
     const currentTestCase = ref<string>("simpleTest");
     const isRunning = ref<boolean>(false);
+    const progress = ref<number>(0);
+    const progressText = ref<string>("");
     const testResults = ref<Record<string, any>>({});
     const testExecutor = ref<TestExecutor | null>(null);
     const progressMessages = ref<string[]>([]);
@@ -213,6 +215,8 @@ export default defineComponent({
       }
 
       isRunning.value = true;
+      progress.value = 0;
+      progressText.value = "准备执行测试...";
       progressMessages.value = [];
       ensureTestResults(); // 确保testResults被初始化
 
@@ -270,10 +274,19 @@ export default defineComponent({
           onProgress: (message) => {
             console.log(message);
             addProgressMessage(message);
+            progressText.value = message;
+            // 根据消息内容更新进度
+            if (message.includes("完成")) {
+              progress.value = 100;
+            } else if (message.includes("执行")) {
+              progress.value = Math.min(progress.value + 10, 90);
+            }
           },
           onComplete: (results) => {
             console.log("测试完成:", results);
             addProgressMessage("测试用例执行完成");
+            progress.value = 100;
+            progressText.value = "测试完成";
             try {
               testResults.value[testCaseName] = results;
             } catch (e) {
@@ -284,6 +297,8 @@ export default defineComponent({
           onError: (error) => {
             console.error("测试错误:", error);
             addProgressMessage(`测试错误: ${error}`);
+            progress.value = 0;
+            progressText.value = "测试失败";
             try {
               testResults.value[testCaseName] = { success: false, error };
             } catch (e) {
@@ -319,6 +334,8 @@ export default defineComponent({
         testExecutor.value.stop();
       }
       isRunning.value = false;
+      progress.value = 0;
+      progressText.value = "测试已停止";
       messageManagers.value.forEach((manager) => manager.destroy());
       messageManagers.value = [];
     };
@@ -327,6 +344,9 @@ export default defineComponent({
     const resetTest = () => {
       stopTest();
       iframes.value = [];
+      progress.value = 0;
+      progressText.value = "";
+      progressMessages.value = [];
       try {
         testResults.value = {};
       } catch (e) {
@@ -345,132 +365,21 @@ export default defineComponent({
 
     return () => (
       <div class="p-6 bg-gray-50 min-h-screen">
-        {/* 控制面板 */}
-        <ElCard
-          class="mb-6"
-          shadow="hover"
-          v-slots={{
-            header: () => (
-              <div class="flex items-center">
-                <Setting class="mr-2" style="width: 16px; height: 16px;" />
-                <span class="font-semibold">测试控制面板</span>
-              </div>
-            ),
+        {/* 悬浮测试控制面板 */}
+        <FloatingTestPanel
+          onTestCaseChange={(testCase) => {
+            currentTestCase.value = testCase.name;
+            saveCurrentTestCase(testCase.name);
           }}
-        >
-          <ElSpace direction="vertical" size="large" class="w-full">
-            {/* 测试用例选择 */}
-            <div class="flex items-center gap-4">
-              <label class="text-sm font-medium text-gray-700 min-w-20">
-                测试用例:
-              </label>
-              <ElSelect
-                v-model={currentTestCase.value}
-                placeholder="选择测试用例"
-                disabled={isRunning.value}
-                class="flex-1 max-w-md"
-                popper-class="test-case-select-dropdown"
-                filterable
-              >
-                {Object.keys(testCases).map((name) => (
-                  <ElOption key={name} label={name} value={name} />
-                ))}
-              </ElSelect>
-            </div>
-
-            {/* 测试用例描述 */}
-            <ElAlert
-              title={
-                currentCases[currentTestCase.value]?.description ||
-                currentTestCase.value
-              }
-              type="info"
-              show-icon
-              closable={false}
-            />
-
-            {/* 操作按钮 */}
-            <div class="flex gap-3">
-              <ElButton
-                type="primary"
-                icon={VideoPlay}
-                onClick={() => runTestCase(currentTestCase.value)}
-                disabled={isRunning.value}
-                loading={isRunning.value}
-                class="flex items-center"
-                style="--el-button-icon-size: 14px;"
-              >
-                {isRunning.value ? "测试中..." : "运行测试"}
-              </ElButton>
-
-              <ElButton
-                type="danger"
-                icon={VideoPause}
-                onClick={stopTest}
-                disabled={!isRunning.value}
-                class="flex items-center"
-                style="--el-button-icon-size: 14px;"
-              >
-                停止测试
-              </ElButton>
-
-              <ElButton
-                icon={Refresh}
-                onClick={resetTest}
-                class="flex items-center"
-                style="--el-button-icon-size: 14px;"
-              >
-                重置
-              </ElButton>
-
-              <ElButton
-                type="warning"
-                onClick={() => {
-                  localStorage.removeItem(STORAGE_KEY);
-                  currentTestCase.value = "simpleTest";
-                }}
-                class="flex items-center"
-                style="--el-button-icon-size: 14px;"
-              >
-                清除缓存
-              </ElButton>
-            </div>
-
-            {/* 状态显示 */}
-            <div class="flex items-center gap-4">
-              <ElTag type={isRunning.value ? "warning" : "success"}>
-                {isRunning.value ? "运行中" : "就绪"}
-              </ElTag>
-              <span class="text-sm text-gray-600">
-                已保存到本地存储，刷新页面后自动恢复
-              </span>
-            </div>
-          </ElSpace>
-        </ElCard>
-
-        {/* 进度消息 */}
-        {progressMessages.value.length > 0 && (
-          <ElCard
-            class="mb-6"
-            shadow="hover"
-            v-slots={{
-              header: () => (
-                <div class="flex items-center">
-                  <InfoFilled class="mr-2" style="width: 16px; height: 16px;" />
-                  <span class="font-semibold">执行进度</span>
-                </div>
-              ),
-            }}
-          >
-            <div class="max-h-48 overflow-y-auto bg-gray-50 rounded p-3">
-              {progressMessages.value.map((message, index) => (
-                <div key={index} class="mb-2 text-sm text-gray-700 font-mono">
-                  {message}
-                </div>
-              ))}
-            </div>
-          </ElCard>
-        )}
+          onRunTest={(testCaseName) => runTestCase(testCaseName)}
+          onStopTest={stopTest}
+          onResetTest={resetTest}
+          isRunning={isRunning.value}
+          progress={progress.value}
+          progressText={progressText.value}
+          testResults={testResults.value}
+          logs={progressMessages.value}
+        />
 
         {/* 客户端容器 */}
         <div class="grid gap-6">

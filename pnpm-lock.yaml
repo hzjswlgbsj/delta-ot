@@ -63,6 +63,9 @@ importers:
       vue:
         specifier: ^3.5.17
         version: 3.5.17(typescript@5.8.3)
+      vue-draggable-resizable:
+        specifier: ^3.0.0
+        version: 3.0.0(vue@3.5.17)
       vue-router:
         specifier: ^4.5.1
         version: 4.5.1(vue@3.5.17)
@@ -4230,6 +4233,14 @@ packages:
     peerDependenciesMeta:
       '@vue/composition-api':
         optional: true
+    dependencies:
+      vue: 3.5.17(typescript@5.8.3)
+    dev: false
+
+  /vue-draggable-resizable@3.0.0(vue@3.5.17):
+    resolution: {integrity: sha512-kABSggcXPoDB8dOTVE09ZkccxiMdNDUaLl7STTeghsFE3o+mk653iumrkmjKLfIBA/w5ZXWJmarBqoqsmWLzEg==}
+    peerDependencies:
+      vue: ^3.2.25
     dependencies:
       vue: 3.5.17(typescript@5.8.3)
     dev: false
