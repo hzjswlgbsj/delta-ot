@@ -8,14 +8,21 @@ import { getFileInfo } from "@/services/file";
 import { safeJsonParse } from "@/utils";
 import { getUserInfo } from "@/services/user";
 import { useUserStore } from "@/store/useUserStore";
+import type { CursorInfo } from "@delta-ot/collaborate";
 
 export default defineComponent({
+  name: "Document",
+  components: {
+    Editor,
+  },
   setup() {
     const route = useRoute();
     const router = useRouter();
     const editorValue = ref<Delta>(null);
     const latestUpdate = ref<Delta>(null);
     const loading = ref(false);
+    const currentUser = ref<any>(null);
+    const editorRef = ref<any>(null);
     let docManager: DocumentManager;
     const userStore = useUserStore();
 
@@ -62,7 +69,78 @@ export default defineComponent({
     };
 
     const handleLocalChange = (delta: Delta) => {
-      docManager.commitDelta(delta);
+      if (docManager) {
+        docManager.commitDelta(delta);
+      }
+    };
+
+    const handleEditorReady = (quill: any) => {
+      console.log("编辑器已准备就绪, Quill 实例:", quill);
+      // 不要直接设置 quillInstance，而是通过 editorRef 来访问 Editor 组件
+    };
+
+    // 处理编辑器选区变化
+    const handleSelectionChange = (
+      range: { index: number; length: number } | null
+    ) => {
+      if (range && currentUser.value) {
+        // 发送光标更新消息
+        const cursorData = {
+          index: range.index,
+          length: range.length,
+          userName: currentUser.value.userName,
+          color: "#4CAF50",
+          status: "active" as const,
+          lastActivity: Date.now(),
+        };
+        docManager.sendCursorMessage(cursorData);
+
+        // 直接显示本地光标
+        if (editorRef.value) {
+          const localCursorData = {
+            userId: currentUser.value.userId,
+            userName: currentUser.value.userName,
+            color: "#4CAF50", // 使用绿色来测试
+            index: range.index,
+            status: "active" as const, // 活跃状态
+            lastActivity: Date.now(),
+          };
+          editorRef.value.updateRemoteCursor(localCursorData);
+        }
+      }
+    };
+
+    // 处理编辑器焦点变化
+    const handleEditorFocus = () => {
+      if (currentUser.value && editorRef.value) {
+        // 获得焦点时，发送活跃状态
+        const localCursorData = {
+          userId: currentUser.value.userId,
+          userName: currentUser.value.userName,
+          color: "#4CAF50",
+          index: 0, // 暂时设为0，后续会根据实际光标位置更新
+          status: "active" as const,
+          lastActivity: Date.now(),
+        };
+        docManager.sendCursorMessage(localCursorData);
+        editorRef.value.updateRemoteCursor(localCursorData);
+      }
+    };
+
+    const handleEditorBlur = () => {
+      if (currentUser.value && editorRef.value) {
+        // 失去焦点时，发送空闲状态
+        const localCursorData = {
+          userId: currentUser.value.userId,
+          userName: currentUser.value.userName,
+          color: "#4CAF50",
+          index: 0,
+          status: "idle" as const,
+          lastActivity: Date.now(),
+        };
+        docManager.sendCursorMessage(localCursorData);
+        editorRef.value.updateRemoteCursor(localCursorData);
+      }
     };
 
     onMounted(async () => {
@@ -75,6 +153,15 @@ export default defineComponent({
           return;
         }
 
+        // 设置当前用户信息
+        currentUser.value = {
+          userId: userInfo.userId,
+          userName: userInfo.userName,
+          avatar: userInfo.avatar,
+        };
+
+        console.log("当前用户信息:", currentUser.value);
+
         const fileInfo = await getDocument();
         const initialDelta = fileInfo.content
           ? new Delta(safeJsonParse(fileInfo.content))
@@ -85,12 +172,35 @@ export default defineComponent({
         docManager = new DocumentManager();
 
         // 直接使用获取到的用户信息
-        docManager.setup(fileInfo.guid, userInfo, initialDelta);
+        await docManager.setup(fileInfo.guid, userInfo, initialDelta);
 
         // 使用 DocumentManager 中封装的监听器
         docManager.onRemoteDelta((delta) => {
           latestUpdate.value = delta;
         });
+
+        // 设置光标更新回调
+        docManager.onCursorUpdate((cursor: CursorInfo) => {
+          if (editorRef.value) {
+            console.log("准备调用 updateRemoteCursor");
+            // 使用 SimpleCursorManager 更新光标（包括本地和远程）
+            const cursorData = {
+              userId: cursor.userId,
+              userName: cursor.userName,
+              color: cursor.color,
+              index: cursor.index,
+            };
+            console.log("传递给 updateRemoteCursor 的数据:", cursorData);
+            editorRef.value.updateRemoteCursor(cursorData);
+          } else {
+            console.log("跳过光标更新，原因:", {
+              editorRefExists: !!editorRef.value,
+              isCurrentUser: cursor.userId === currentUser.value?.userId,
+            });
+          }
+        });
+
+        console.log("文档管理器初始化完成");
       } catch (error) {
         console.error("初始化文档失败:", error);
         // 如果是用户信息问题，重定向到登录页
@@ -107,11 +217,25 @@ export default defineComponent({
         {loading.value && <div class={styles.loading}>Loading...</div>}
 
         <Editor
+          ref={editorRef}
           v-show={!loading.value}
           value={editorValue.value}
           updates={latestUpdate.value}
           onChange={handleLocalChange}
+          onReady={handleEditorReady}
+          onSelectionChange={handleSelectionChange}
+          onFocus={handleEditorFocus}
+          onBlur={handleEditorBlur}
         />
+
+        {/* 添加内联样式确保光标样式生效 */}
+        <style>
+          {`
+            .ql-editor {
+              caret-color: transparent !important;
+            }
+          `}
+        </style>
       </div>
     );
   },

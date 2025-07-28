@@ -1,4 +1,3 @@
-// useDocStore.ts
 import { defineStore } from "pinia";
 
 export const useDocStore = defineStore("doc", {

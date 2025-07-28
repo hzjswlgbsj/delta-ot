@@ -7,6 +7,8 @@ import {
   JoinPayload,
   KeyFramePayload,
   ClientMessage,
+  CursorUpdateData,
+  CursorInfo,
 } from "./types";
 import { documentSessionManager } from "../sessions/DocumentSessionManager";
 import { User, File } from "../db/models";
@@ -19,6 +21,7 @@ import { getServiceLogger } from "../utils/logger";
 export class ClientConnection extends BaseSocketConnection {
   private userId = "";
   private documentId = "";
+  private userCursor: CursorInfo | null = null;
 
   constructor(ws: WebSocket) {
     super(ws);
@@ -33,6 +36,8 @@ export class ClientConnection extends BaseSocketConnection {
     const logger = getServiceLogger("socket");
     logger.info(`Client disconnected: ${this.userId}`);
     if (this.documentId) {
+      // 清除用户光标
+      this.clearUserCursor();
       documentSessionManager.removeClientFromDocument(this.documentId, this);
     }
   }
@@ -75,6 +80,10 @@ export class ClientConnection extends BaseSocketConnection {
       case MessageType.OP:
         this.handleOp(cmd);
         break;
+      // 光标相关消息处理
+      case MessageType.CURSOR_UPDATE:
+        this.handleCursorUpdate(cmd);
+        break;
       default:
         const logger = getServiceLogger("socket");
         logger.warn("⚠️ Unknown message type:", cmd.type);
@@ -101,68 +110,90 @@ export class ClientConnection extends BaseSocketConnection {
 
     try {
       const decoded = verifyToken(token);
-
-      if (!decoded || decoded.userId !== userId) {
-        this.sendError(
-          ErrorCode.INVALID_TOKEN,
-          "Invalid token or userId mismatch"
-        );
+      if (!decoded) {
+        this.sendError(ErrorCode.INVALID_TOKEN, "Invalid token");
         return;
       }
-    } catch (err) {
-      this.sendError(
-        ErrorCode.INVALID_TOKEN,
-        "Invalid token or userId mismatch"
-      );
-      return;
-    }
 
-    // 校验用户是否存在
-    const user = await User.findOne({ where: { userId } });
-    if (!user) {
-      this.sendError(ErrorCode.USER_NOT_FOUND, "User not found");
-      return;
-    }
+      // 检查文档是否存在
+      const file = await File.findOne({ where: { guid: documentId } });
+      if (!file) {
+        this.sendError(ErrorCode.FILE_NOT_FOUND, "Document not found");
+        return;
+      }
 
-    // 校验文档是否存在
-    const file = await File.findOne({ where: { guid: documentId } });
-    if (!file) {
-      this.sendError(ErrorCode.FILE_NOT_FOUND, "Document not found");
-      return;
-    }
+      // 加入文档会话
+      const session = documentSessionManager.getOrCreateSession(documentId);
+      session.addClient(this);
 
-    documentSessionManager.addClientToDocument(documentId, this);
-    const logger = getServiceLogger("socket");
-    logger.info(`User ${userId} joined document ${documentId}`);
+      const logger = getServiceLogger("socket");
+      logger.info(`User ${userId} joined document ${documentId}`);
+    } catch (error) {
+      const logger = getServiceLogger("socket");
+      logger.error("Error handling join:", error);
+      this.sendError(ErrorCode.INTERNAL_ERROR, "Internal server error");
+    }
   }
 
   private handleKeyFrame(cmd: ClientMessage<KeyFramePayload>) {
-    const { documentId } = cmd;
-    const session = documentSessionManager.getSession(documentId);
-
-    if (!session) {
-      const logger = getServiceLogger("socket");
-      logger.warn(`No session found for document ${documentId}`);
-      return;
+    const session = documentSessionManager.getSession(this.documentId);
+    if (session) {
+      session.handleKeyFrameRequest(this);
     }
-
-    const content = session.getContent();
-    const userIds = session.getUserIds();
-
-    this.sendCmd(MessageType.KEY_FRAME, {
-      content,
-      userIds,
-      sequence: session.sequence,
-    });
   }
 
-  /** 接收到某个客户端的 OP 信令 */
   private handleOp(cmd: ClientMessage) {
-    const session = documentSessionManager.getSession(cmd.documentId);
-    session.applyClientOperation(cmd, this);
+    const session = documentSessionManager.getSession(this.documentId);
+    if (session) {
+      session.handleOp(cmd);
+    }
+  }
+
+  // ========== 光标相关处理方法 ==========
+
+  private handleCursorUpdate(cmd: ClientMessage<CursorUpdateData>) {
+    const { data } = cmd;
+
+    // 更新用户光标信息
+    this.userCursor = {
+      index: data.index,
+      length: data.length,
+      userId: this.userId,
+      userName: data.userName,
+      timestamp: cmd.timestamp,
+      color: data.color,
+      status: data.status,
+      lastActivity: data.lastActivity,
+      avatar: data.avatar,
+    };
+
+    // 广播给其他用户
+    this.broadcastCursorUpdate(cmd);
+  }
+
+  private broadcastCursorUpdate(cmd: ClientMessage<CursorUpdateData>) {
+    const session = documentSessionManager.getSession(this.documentId);
+    if (session) {
+      session.broadcastToOthers(this, cmd);
+    }
+  }
+
+  private clearUserCursor() {
+    if (this.userCursor) {
+      this.userCursor = null;
+    }
+  }
+
+  // 获取用户光标信息
+  getUserCursor(): CursorInfo | null {
+    return this.userCursor;
   }
 
   getUserId(): string {
     return this.userId;
+  }
+
+  getDocumentId(): string {
+    return this.documentId;
   }
 }

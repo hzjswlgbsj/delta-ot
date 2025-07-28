@@ -4,7 +4,11 @@ import { ClientConnection } from "../socket/ClientConnection";
 export class DocumentSessionManager {
   private sessions: Map<string, DocumentSession> = new Map();
 
-  getSession(documentId: string): DocumentSession {
+  getSession(documentId: string): DocumentSession | undefined {
+    return this.sessions.get(documentId);
+  }
+
+  getOrCreateSession(documentId: string): DocumentSession {
     if (!this.sessions.has(documentId)) {
       const session = new DocumentSession(documentId);
       // session.startPersistence();
@@ -34,7 +38,7 @@ export class DocumentSessionManager {
   }
 
   addClientToDocument(documentId: string, client: ClientConnection) {
-    const session = this.getSession(documentId);
+    const session = this.getOrCreateSession(documentId);
     session.addClient(client);
   }
 

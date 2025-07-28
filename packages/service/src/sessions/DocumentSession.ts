@@ -1,6 +1,6 @@
 import Delta, { Op } from "quill-delta";
 import { ClientConnection } from "../socket/ClientConnection";
-import { ClientMessage, MessageType } from "../socket/types";
+import { ClientMessage, MessageType, CursorInfo } from "../socket/types";
 import {
   OTEngine,
   DocumentModel,
@@ -43,6 +43,15 @@ export class DocumentSession {
     });
   }
 
+  /** 广播消息给其他客户端 */
+  broadcastToOthers(from: ClientConnection, cmd: ClientMessage<any>) {
+    this.clients.forEach((client) => {
+      if (client !== from) {
+        client.send(client.encodeCmd(cmd));
+      }
+    });
+  }
+
   /** 当前编辑器内容 */
   getContent(): Op[] {
     return this.model.getContents().ops;
@@ -79,6 +88,32 @@ export class DocumentSession {
 
   getClientCount(): number {
     return this.clients.size;
+  }
+
+  // ========== 光标相关方法 ==========
+
+  /** 处理关键帧请求 */
+  handleKeyFrameRequest(client: ClientConnection) {
+    const content = this.model.getContents();
+    const userIds = this.getUserIds();
+
+    client.sendCmd(MessageType.KEY_FRAME, {
+      content,
+      userIds,
+      sequence: this.sequence,
+    });
+  }
+
+  /** 获取所有用户的光标信息 */
+  getAllCursors(): CursorInfo[] {
+    const cursors: CursorInfo[] = [];
+    this.clients.forEach((client) => {
+      const cursor = client.getUserCursor();
+      if (cursor) {
+        cursors.push(cursor);
+      }
+    });
+    return cursors;
   }
 
   /**
@@ -178,6 +213,21 @@ export class DocumentSession {
 
     // 5.广播给所有客户端（包含自己）
     this.broadcastOp(broadcastCmd);
+  }
+
+  /** 处理操作消息 */
+  handleOp(cmd: ClientMessage<Delta>) {
+    const client = this.getClientById(cmd.userId);
+    if (client) {
+      this.applyClientOperation(cmd, client);
+    }
+  }
+
+  /** 根据用户ID获取客户端连接 */
+  private getClientById(userId: string): ClientConnection | undefined {
+    return Array.from(this.clients).find(
+      (client) => client.getUserId() === userId
+    );
   }
 
   /** 启动定时持久化（每 30 秒） */

@@ -2,6 +2,50 @@
   padding: 16px;
   background-color: #fdfdfd;
   border: 1px solid #ccc;
+  
+  // 隐藏 Quill 原有的光标
+  .ql-editor {
+    caret-color: transparent !important;
+  }
+  
+  .ql-cursor {
+    display: inline-block;
+    position: relative;
+    width: 0;
+    height: 1em;
+    pointer-events: none;
+    
+    // 光标闪烁动画
+    &::before {
+      content: '';
+      position: absolute;
+      left: -1px;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background-color: inherit;
+      animation: cursor-blink 1s infinite;
+    }
+  }
+
+  .cursor-label {
+    opacity: 0.9;
+    transition: opacity 0.2s ease;
+    
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+// 光标闪烁动画
+@keyframes cursor-blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0.3;
+  }
 }
 
 .title {

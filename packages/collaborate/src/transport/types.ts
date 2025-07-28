@@ -42,6 +42,7 @@ export type ServiceMessage<T> = {
   uuid: string;
   data: T;
 };
+
 /** 接收的信令类型 */
 export enum ReceiveCommandType {
   // 服务端心跳响应（也可作为 push 的心跳包）
@@ -59,6 +60,8 @@ export enum ReceiveCommandType {
   USER_LIST = "user_list",
   // 服务端拒绝请求（如无权限、文档不存在等）
   REJECTED = "rejected",
+  // 光标位置更新（统一的光标信令）
+  CURSOR_UPDATE = "cursor_update",
 }
 
 /** 客户端发送的命令类型 */
@@ -75,6 +78,8 @@ export enum SendCommandType {
   LEAVE = "leave",
   // 请求当前文档状态（适用于重连）
   REQUEST_DOC = "request_doc",
+  // 光标位置更新
+  CURSOR_UPDATE = "cursor_update",
 }
 
 /** 进入原因 1000-正常进入 1001-重连进入 */
@@ -92,3 +97,44 @@ export type UserInfo = {
   createdAt: string;
   updatedAt: string;
 };
+
+/** 用户状态 */
+export enum UserStatus {
+  ACTIVE = "active",
+  IDLE = "idle",
+  OFFLINE = "offline",
+}
+
+/** 扩展光标信息 */
+export interface CursorInfo {
+  // 光标在文档中的位置（字符索引）
+  index: number;
+  // 光标长度（用于选区，0表示光标，>0表示选区）
+  length: number;
+  // 用户标识
+  userId: string;
+  userName: string;
+  // 时间戳（用于判断光标新鲜度）
+  timestamp: number;
+  // 光标颜色（用于区分不同用户）
+  color: string;
+  // 光标状态（活跃、空闲、离线等）
+  status: UserStatus;
+  // 最后活动时间
+  lastActivity: number;
+  // 用户头像URL
+  avatar?: string;
+  // 自定义元数据
+  metadata?: Record<string, any>;
+}
+
+/** 光标更新消息数据 */
+export interface CursorUpdateData {
+  index: number;
+  length: number;
+  userName: string;
+  color: string;
+  status: UserStatus;
+  lastActivity: number;
+  avatar?: string;
+}

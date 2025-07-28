@@ -17,5 +17,8 @@ export enum ErrorCode {
   /** 令牌无效或过期 */
   INVALID_TOKEN = -1,
 
+  /** 内部服务器错误 */
+  INTERNAL_ERROR = 5000,
+
   // ✅ 可以按模块往下扩展
 }

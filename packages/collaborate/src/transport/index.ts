@@ -1,4 +1,3 @@
-import { CollaborationWS } from "./CollaborationWS";
 export * from "./types";
-
-export { CollaborationWS };
+export * from "./WebSocketClient";
+export * from "./CollaborationWS";

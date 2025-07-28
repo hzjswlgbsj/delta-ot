@@ -70,6 +70,10 @@ export class WebsocketController {
       case ReceiveCommandType.KEY_FRAME:
         this.mediator.handleKeyFrame(cmd.data);
         break;
+      // 光标相关信令处理
+      case ReceiveCommandType.CURSOR_UPDATE:
+        this.mediator.handleCursorMessage(cmd);
+        break;
       default:
         const logger = getGlobalLogger("document");
         logger.info("暂未处理的信令", cmd);
@@ -89,6 +93,15 @@ export class WebsocketController {
 
   sendCmd(delta: Delta) {
     return this.ws.sendCmd(SendCommandType.OP, delta);
+  }
+
+  /**
+   * 发送光标更新消息
+   */
+  sendCursorMessage(cursorData: any) {
+    if (this.ws) {
+      this.ws.sendCmd(SendCommandType.CURSOR_UPDATE, cursorData);
+    }
   }
 
   destroy() {

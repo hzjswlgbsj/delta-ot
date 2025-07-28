@@ -1,7 +1,7 @@
 import Delta from "quill-delta";
 import { UserInfo } from "../types/base";
 import type { WebsocketController } from "./WebsocketController";
-import { OTSession } from "@delta-ot/collaborate";
+import { OTSession, CursorInfo } from "@delta-ot/collaborate";
 
 interface CollaborateInitConfig {
   userInfo: UserInfo;
@@ -15,6 +15,9 @@ export class CollaborateController {
   private userInfo!: UserInfo;
   private guid!: string;
   private remoteChangeCb: ((delta: Delta) => void) | null = null;
+
+  // 光标管理相关
+  private cursorUpdateCb: ((cursor: CursorInfo) => void) | null = null;
 
   init(config: CollaborateInitConfig, initialContent?: Delta) {
     const { userInfo, guid, ws } = config;
@@ -39,15 +42,28 @@ export class CollaborateController {
     this.remoteChangeCb = cb;
   }
 
-  /** 提交本地 delta */
+  /** 上层调用：提交本地变更 */
   commitLocalChange(delta: Delta) {
     const cmd = this.ws.sendCmd(delta);
     this.otSession.commitLocal(cmd);
+  }
+
+  /** 注册光标更新回调 */
+  onCursorUpdate(cb: (cursor: CursorInfo) => void) {
+    this.cursorUpdateCb = cb;
+  }
+
+  /** 处理远程光标消息 */
+  handleCursorMessage(message: any): void {
+    if (message.type === "cursor_update") {
+      this.cursorUpdateCb?.(message.data);
+    }
   }
 
   destroy() {
     this.ws?.destroy();
     this.remoteChangeCb = null;
     this.otSession?.destroy();
+    this.cursorUpdateCb = null;
   }
 }

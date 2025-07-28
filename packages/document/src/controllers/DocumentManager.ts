@@ -6,10 +6,15 @@ import { CollaborationMediator } from "./CollaborationMediator";
 import { KeyFramePayload } from "@/types/cmd";
 import { UserInfo } from "@/types/base";
 import { getGlobalLogger } from "../../../common/src/utils/Logger";
+import { CursorInfo } from "@delta-ot/collaborate";
+
 export class DocumentManager implements CollaborationMediator {
   private websocket!: WebsocketController;
   private collaborate!: CollaborateController;
   private remoteDeltaCallback: ((delta: Delta) => void) | null = null;
+
+  // 光标相关回调
+  private cursorUpdateCallback: ((cursor: CursorInfo) => void) | null = null;
 
   async setup(guid: string, userInfo: UserInfo, initialContent?: Delta) {
     // 验证用户信息
@@ -41,6 +46,11 @@ export class DocumentManager implements CollaborationMediator {
       logger.info("主动执行更新编辑器内容", delta);
       this.remoteDeltaCallback?.(delta);
     });
+
+    // 注册光标相关回调
+    this.collaborate.onCursorUpdate((cursor) => {
+      this.cursorUpdateCallback?.(cursor);
+    });
   }
 
   /** 上层调用：提交本地变更 */
@@ -51,6 +61,18 @@ export class DocumentManager implements CollaborationMediator {
   /** 上层注册远端协同变更回调 */
   onRemoteDelta(cb: (delta: Delta) => void) {
     this.remoteDeltaCallback = cb;
+  }
+
+  /** 注册光标更新回调 */
+  onCursorUpdate(cb: (cursor: CursorInfo) => void) {
+    this.cursorUpdateCallback = cb;
+  }
+
+  /** 发送光标消息 */
+  sendCursorMessage(cursorData: any) {
+    if (this.websocket) {
+      this.websocket.sendCursorMessage(cursorData);
+    }
   }
 
   /** 暴露底层 controller（可选） */
@@ -105,5 +127,10 @@ export class DocumentManager implements CollaborationMediator {
     this.collaborate.otSession.setContents(cleanedContent);
 
     docStore.setUserIds(userIds);
+  }
+
+  /** 处理光标相关消息 */
+  handleCursorMessage(message: any): void {
+    this.collaborate.handleCursorMessage(message);
   }
 }
