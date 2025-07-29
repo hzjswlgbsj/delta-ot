@@ -14,14 +14,6 @@ export class CursorManager {
   updateCursor(cursor: CursorInfo) {
     const { userId, status } = cursor;
 
-    console.log("CursorManager.updateCursor 被调用:", {
-      userId,
-      userName: cursor.userName,
-      color: cursor.color,
-      index: cursor.index,
-      status,
-    });
-
     // 根据状态处理光标
     if (status === UserStatus.OFFLINE) {
       // 用户离线，移除光标
@@ -49,8 +41,6 @@ export class CursorManager {
   }
 
   removeCursor(userId: string) {
-    console.log("CursorManager.removeCursor 被调用:", userId);
-
     // 从内部状态移除
     this.cursors.delete(userId);
 
@@ -59,8 +49,6 @@ export class CursorManager {
   }
 
   clearAll() {
-    console.log("CursorManager.clearAll 被调用");
-
     // 清空内部状态
     this.cursors.clear();
 

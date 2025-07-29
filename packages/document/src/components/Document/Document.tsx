@@ -75,7 +75,6 @@ export default defineComponent({
     };
 
     const handleEditorReady = (quill: any) => {
-      console.log("编辑器已准备就绪, Quill 实例:", quill);
       // 不要直接设置 quillInstance，而是通过 editorRef 来访问 Editor 组件
     };
 
@@ -160,8 +159,6 @@ export default defineComponent({
           avatar: userInfo.avatar,
         };
 
-        console.log("当前用户信息:", currentUser.value);
-
         const fileInfo = await getDocument();
         const initialDelta = fileInfo.content
           ? new Delta(safeJsonParse(fileInfo.content))
@@ -182,7 +179,6 @@ export default defineComponent({
         // 设置光标更新回调
         docManager.onCursorUpdate((cursor: CursorInfo) => {
           if (editorRef.value) {
-            console.log("准备调用 updateRemoteCursor");
             // 使用 SimpleCursorManager 更新光标（包括本地和远程）
             const cursorData = {
               userId: cursor.userId,
@@ -190,17 +186,9 @@ export default defineComponent({
               color: cursor.color,
               index: cursor.index,
             };
-            console.log("传递给 updateRemoteCursor 的数据:", cursorData);
             editorRef.value.updateRemoteCursor(cursorData);
-          } else {
-            console.log("跳过光标更新，原因:", {
-              editorRefExists: !!editorRef.value,
-              isCurrentUser: cursor.userId === currentUser.value?.userId,
-            });
           }
         });
-
-        console.log("文档管理器初始化完成");
       } catch (error) {
         console.error("初始化文档失败:", error);
         // 如果是用户信息问题，重定向到登录页
