@@ -89,9 +89,8 @@ export default defineComponent({
 
         quill.on("text-change", (delta, _old, source) => {
           if (source === "user" && !isApplyingExternal && props.onChange) {
-            // 直接使用 getContents，不需要过滤
-            const contents = quill.getContents();
-            props.onChange(contents);
+            // 传递增量变更
+            props.onChange(delta);
           }
         });
 
