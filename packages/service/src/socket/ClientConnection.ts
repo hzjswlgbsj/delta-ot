@@ -149,8 +149,6 @@ export class ClientConnection extends BaseSocketConnection {
     }
   }
 
-  // ========== 光标相关处理方法 ==========
-
   private handleCursorUpdate(cmd: ClientMessage<CursorUpdateData>) {
     const { data } = cmd;
 

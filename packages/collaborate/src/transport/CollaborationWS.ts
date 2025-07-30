@@ -148,7 +148,7 @@ export class CollaborationWS extends WebSocketClient {
     this.resetSendHBTimer();
     const cmd = this.generateCmd(type, data);
     const logger = getGlobalLogger("collaborate");
-    logger.info("发送客户端操作：", JSON.stringify(cmd));
+    logger.info("客户端发送操作：", JSON.stringify(cmd));
     this.send(this.encodeCmd(cmd));
     return cmd;
   }

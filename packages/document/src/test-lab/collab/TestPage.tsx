@@ -58,6 +58,7 @@ import {
   concurrentFormatRemoval,
   query1,
   query2,
+  query3,
 } from "./testCases";
 import { simpleTest, simpleTwoUserTest } from "./simpleTest";
 
@@ -117,12 +118,7 @@ const clientConfigs = [
   },
   {
     id: "3",
-    query: new URLSearchParams({
-      loginName: "zhangsan",
-      pwd: "000000",
-      docId: "9089d075-6604-41f6-a4fa-4d466c60f4c4",
-      clientId: "3",
-    }).toString(),
+    query: query3,
     userId: "9c8b7a6d-5e4f-3g2h-1i0j-k1l2m3n4o5p6",
     color: "red",
   },

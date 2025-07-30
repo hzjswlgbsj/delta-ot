@@ -22,23 +22,30 @@ export interface TestCase {
   description?: string;
 }
 
-/**
- * 测试用的文档 ID
- */
-export const docId = "9089d075-6604-41f6-a4fa-4d466c60f4c4";
+/** 长文档 */
+// export const docId = "9089d075-6604-41f6-a4fa-4d466c60f4c4";
+/** 短文档 */
+export const docId = "fafe8358-e502-4b4a-bc55-93c3aac20ff2";
 
 export const query1 = new URLSearchParams({
   loginName: "sixty",
   pwd: "000000",
-  docId: docId,
+  docId,
   clientId: "1", // 第一个客户端使用蓝色
 }).toString();
 
 export const query2 = new URLSearchParams({
   loginName: "wangwu",
   pwd: "000000",
-  docId: docId,
+  docId,
   clientId: "2", // 第二个客户端使用绿色
+}).toString();
+
+export const query3 = new URLSearchParams({
+  loginName: "zhangsan",
+  pwd: "000000",
+  docId,
+  clientId: "3",
 }).toString();
 
 /**

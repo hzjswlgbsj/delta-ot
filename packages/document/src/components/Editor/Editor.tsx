@@ -10,7 +10,7 @@ import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import styles from "./style.module.less";
 import type Delta from "quill-delta";
-import { CursorManager } from "./CursorManager";
+import { CursorManager } from "../../controllers/CursorManager";
 
 export default defineComponent({
   name: "Editor",
@@ -52,23 +52,6 @@ export default defineComponent({
               [{ script: "sub" }, { script: "super" }],
               [{ indent: "-1" }, { indent: "+1" }],
               [{ direction: "rtl" }],
-              [
-                {
-                  size: [
-                    "9pt",
-                    "10pt",
-                    "11pt",
-                    "12pt",
-                    "14pt",
-                    "16pt",
-                    "18pt",
-                    "22pt",
-                    "24pt",
-                    "30pt",
-                    "36pt",
-                  ],
-                },
-              ],
               [{ header: [1, 2, 3, 4, 5, 6, false] }],
               [{ color: [] }, { background: [] }],
               [{ font: [] }],
@@ -89,9 +72,8 @@ export default defineComponent({
 
         quill.on("text-change", (delta, _old, source) => {
           if (source === "user" && !isApplyingExternal && props.onChange) {
-            // 直接使用 getContents，不需要过滤
-            const contents = quill.getContents();
-            props.onChange(contents);
+            // 传递增量变更
+            props.onChange(delta);
           }
         });
 
@@ -158,7 +140,15 @@ export default defineComponent({
     // 暴露光标相关方法给父组件
     const updateRemoteCursor = (cursor: any) => {
       if (cursorManager) {
-        cursorManager.updateCursor(cursor);
+        // 远程用户的光标，不显示选中效果
+        cursorManager.updateCursor(cursor, false);
+      }
+    };
+
+    const updateLocalCursor = (cursor: any) => {
+      if (cursorManager) {
+        // 本地用户的光标，不显示选中效果
+        cursorManager.updateCursor(cursor, true);
       }
     };
 
@@ -182,6 +172,7 @@ export default defineComponent({
       editorRef,
       quill,
       updateRemoteCursor,
+      updateLocalCursor,
       removeRemoteCursor,
       clearAllRemoteCursors,
       getRemoteCursorCount,

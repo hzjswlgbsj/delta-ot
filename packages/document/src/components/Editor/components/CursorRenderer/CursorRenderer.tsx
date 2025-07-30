@@ -4,9 +4,15 @@ export class CursorRenderer {
   private cursorContainer: HTMLElement;
   private cursors: Map<string, HTMLElement> = new Map();
   private positionCursors: Map<number, Set<string>> = new Map();
+  private selectionHighlights: Map<string, HTMLElement> = new Map(); // 新增：选区高亮映射
+  private editorElement: HTMLElement; // 新增：保存编辑器元素引用
 
   constructor(editorElement: HTMLElement) {
+    this.editorElement = editorElement;
     this.createCursorContainer(editorElement);
+
+    // 初始化时确保原生光标可见
+    this.updateNativeCursorVisibility();
   }
 
   private createCursorContainer(editorElement: HTMLElement) {
@@ -35,14 +41,45 @@ export class CursorRenderer {
     }
   }
 
+  // 新增：更新原生光标显示状态
+  private updateNativeCursorVisibility() {
+    // 永远保持原生光标可见，让本地用户的光标永远显示
+    // 远程用户的自定义光标会覆盖在原生光标上方
+    const editorElement = this.editorElement.querySelector(
+      ".ql-editor"
+    ) as HTMLElement;
+
+    if (editorElement) {
+      // 确保原生光标永远可见
+      editorElement.style.caretColor = "auto";
+    }
+  }
+
   updateCursor(
     cursor: CursorInfo,
-    bounds: { left: number; top: number; height: number }
+    bounds: { left: number; top: number; height: number },
+    selectionBounds?: {
+      start: { left: number; top: number; height: number };
+      end: { left: number; top: number; height: number };
+      width: number;
+      height: number;
+      top: number;
+      left: number;
+      isMultiLine?: boolean;
+    },
+    isLocalUser: boolean = false
   ) {
-    const { userId, userName, color, index } = cursor;
+    const { userId, userName, color, index, length } = cursor;
 
-    // 移除旧光标
+    // 移除旧光标和选区高亮
     this.removeCursor(userId);
+
+    // 如果是本地用户，不显示任何自定义光标和选区高亮
+    if (isLocalUser) {
+      // 更新原生光标显示状态
+      this.updateNativeCursorVisibility();
+      return;
+    }
 
     try {
       // 获取该位置的所有光标数量
@@ -57,9 +94,10 @@ export class CursorRenderer {
       const labelOffset = cursorIndex * 20;
 
       // 创建光标元素
-      const cursorElement = this.createCursorElement(bounds, color);
+      const cursorElement = this.createCursorElement(bounds, color, length);
       cursorElement.setAttribute("data-user-id", userId);
       cursorElement.setAttribute("data-position", index.toString());
+      cursorElement.setAttribute("data-length", length.toString());
 
       // 创建用户标签
       const label = this.createLabelElement(userName, color, labelOffset);
@@ -67,6 +105,14 @@ export class CursorRenderer {
 
       this.cursorContainer.appendChild(cursorElement);
       this.cursors.set(userId, cursorElement);
+
+      // 如果有选区，创建选区高亮
+      if (length > 0 && selectionBounds) {
+        this.createSelectionHighlight(userId, selectionBounds);
+      }
+
+      // 更新原生光标显示状态
+      this.updateNativeCursorVisibility();
     } catch (error) {
       console.warn("更新光标失败:", error);
     }
@@ -74,7 +120,8 @@ export class CursorRenderer {
 
   private createCursorElement(
     bounds: { left: number; top: number; height: number },
-    color: string
+    color: string,
+    length: number
   ): HTMLElement {
     const cursorElement = document.createElement("div");
     cursorElement.className = "simple-cursor";
@@ -88,9 +135,43 @@ export class CursorRenderer {
     cursorElement.style.pointerEvents = "none";
     cursorElement.style.zIndex = "100000";
     cursorElement.style.borderRadius = "0";
-    // 移除红色边框
 
     return cursorElement;
+  }
+
+  private createSelectionHighlight(
+    userId: string,
+    selectionBounds: {
+      start: { left: number; top: number; height: number };
+      end: { left: number; top: number; height: number };
+      width: number;
+      height: number;
+      top: number;
+      left: number;
+      isMultiLine?: boolean;
+    }
+  ) {
+    // 创建选区高亮元素
+    const selectionHighlight = document.createElement("div");
+    selectionHighlight.className = "selection-highlight";
+    selectionHighlight.setAttribute("data-user-id", userId);
+
+    // 设置选区样式 - 使用浏览器默认的选中效果
+    selectionHighlight.style.position = "absolute";
+    selectionHighlight.style.left = `${selectionBounds.left}px`;
+    selectionHighlight.style.top = `${selectionBounds.top}px`;
+    selectionHighlight.style.width = `${selectionBounds.width}px`;
+    selectionHighlight.style.height = `${selectionBounds.height}px`;
+
+    // 使用浏览器默认的选中背景色
+    selectionHighlight.style.backgroundColor = "#0078d7"; // 类似浏览器默认选中色
+    selectionHighlight.style.opacity = "0.3";
+    selectionHighlight.style.pointerEvents = "none";
+    selectionHighlight.style.zIndex = "99998"; // 在光标下方
+    selectionHighlight.style.borderRadius = "0"; // 移除圆角，更像浏览器默认效果
+
+    this.cursorContainer.appendChild(selectionHighlight);
+    this.selectionHighlights.set(userId, selectionHighlight);
   }
 
   private createLabelElement(
@@ -144,6 +225,15 @@ export class CursorRenderer {
       cursorElement.remove();
       this.cursors.delete(userId);
     }
+
+    const selectionHighlight = this.selectionHighlights.get(userId);
+    if (selectionHighlight) {
+      selectionHighlight.remove();
+      this.selectionHighlights.delete(userId);
+    }
+
+    // 更新原生光标显示状态
+    this.updateNativeCursorVisibility();
   }
 
   private rearrangeCursorsAtPosition(position: number) {
@@ -169,6 +259,11 @@ export class CursorRenderer {
     this.cursorContainer.innerHTML = "";
     this.cursors.clear();
     this.positionCursors.clear();
+    this.selectionHighlights.forEach((highlight) => highlight.remove());
+    this.selectionHighlights.clear();
+
+    // 更新原生光标显示状态
+    this.updateNativeCursorVisibility();
   }
 
   destroy() {

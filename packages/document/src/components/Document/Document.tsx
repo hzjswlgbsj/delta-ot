@@ -101,10 +101,11 @@ export default defineComponent({
             userName: currentUser.value.userName,
             color: "#4CAF50", // 使用绿色来测试
             index: range.index,
+            length: range.length, // 添加 length 字段
             status: "active" as const, // 活跃状态
             lastActivity: Date.now(),
           };
-          editorRef.value.updateRemoteCursor(localCursorData);
+          editorRef.value.updateLocalCursor(localCursorData);
         }
       }
     };
@@ -122,7 +123,7 @@ export default defineComponent({
           lastActivity: Date.now(),
         };
         docManager.sendCursorMessage(localCursorData);
-        editorRef.value.updateRemoteCursor(localCursorData);
+        editorRef.value.updateLocalCursor(localCursorData);
       }
     };
 
@@ -138,7 +139,7 @@ export default defineComponent({
           lastActivity: Date.now(),
         };
         docManager.sendCursorMessage(localCursorData);
-        editorRef.value.updateRemoteCursor(localCursorData);
+        editorRef.value.updateLocalCursor(localCursorData);
       }
     };
 
@@ -185,6 +186,9 @@ export default defineComponent({
               userName: cursor.userName,
               color: cursor.color,
               index: cursor.index,
+              length: cursor.length, // 添加 length 字段
+              status: cursor.status,
+              lastActivity: cursor.lastActivity,
             };
             editorRef.value.updateRemoteCursor(cursorData);
           }
@@ -215,15 +219,6 @@ export default defineComponent({
           onFocus={handleEditorFocus}
           onBlur={handleEditorBlur}
         />
-
-        {/* 添加内联样式确保光标样式生效 */}
-        <style>
-          {`
-            .ql-editor {
-              caret-color: transparent !important;
-            }
-          `}
-        </style>
       </div>
     );
   },

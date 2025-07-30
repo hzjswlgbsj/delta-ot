@@ -1,7 +1,12 @@
 import Delta from "quill-delta";
 import { UserInfo } from "../types/base";
 import type { WebsocketController } from "./WebsocketController";
-import { OTSession, CursorInfo } from "@delta-ot/collaborate";
+import {
+  OTSession,
+  CursorInfo,
+  ReceiveCommandType,
+  ServiceMessage,
+} from "@delta-ot/collaborate";
 
 interface CollaborateInitConfig {
   userInfo: UserInfo;
@@ -54,8 +59,8 @@ export class CollaborateController {
   }
 
   /** 处理远程光标消息 */
-  handleCursorMessage(message: any): void {
-    if (message.type === "cursor_update") {
+  handleCursorMessage(message: ServiceMessage<CursorInfo>): void {
+    if (message.type === ReceiveCommandType.CURSOR_UPDATE) {
       this.cursorUpdateCb?.(message.data);
     }
   }

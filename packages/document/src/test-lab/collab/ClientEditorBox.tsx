@@ -116,10 +116,11 @@ export default defineComponent({
             userName: user.userName,
             color: userColor,
             index: range.index,
+            length: range.length, // 添加 length 字段
             status: "active" as const, // 活跃状态
             lastActivity: Date.now(),
           };
-          editorRef.value.updateRemoteCursor(localCursorData);
+          editorRef.value.updateLocalCursor(localCursorData);
         }
       }
     };
@@ -149,7 +150,7 @@ export default defineComponent({
             status: "active" as const,
             lastActivity: Date.now(),
           };
-          editorRef.value.updateRemoteCursor(localCursorData);
+          editorRef.value.updateLocalCursor(localCursorData);
         }
       }
     };
@@ -178,7 +179,7 @@ export default defineComponent({
             status: "idle" as const,
             lastActivity: Date.now(),
           };
-          editorRef.value.updateRemoteCursor(localCursorData);
+          editorRef.value.updateLocalCursor(localCursorData);
         }
       }
     };
