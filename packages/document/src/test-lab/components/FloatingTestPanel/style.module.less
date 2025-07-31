@@ -1,0 +1,226 @@
+/* 悬浮面板基础样式 */
+.floatingTestPanel {
+  position: fixed;
+  z-index: 1000;
+  background-color: white;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  /* 确保面板在左上角显示 */
+  top: 10px;
+  left: 10px;
+}
+
+/* 拖拽手柄样式 */
+.resizeHandle {
+  &-se,
+  &-sw,
+  &-ne,
+  &-nw,
+  &-n,
+  &-s,
+  &-e,
+  &-w {
+    position: absolute;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+
+    &:hover {
+      border-color: #409eff;
+      background-color: rgba(64, 158, 255, 0.1);
+    }
+  }
+
+  /* 东南角手柄 */
+  &-se {
+    right: 0;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    cursor: se-resize;
+  }
+
+  /* 西南角手柄 */
+  &-sw {
+    left: 0;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    cursor: sw-resize;
+  }
+
+  /* 东北角手柄 */
+  &-ne {
+    right: 0;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    cursor: ne-resize;
+  }
+
+  /* 西北角手柄 */
+  &-nw {
+    left: 0;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    cursor: nw-resize;
+  }
+
+  /* 北边手柄 */
+  &-n {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 5px;
+    cursor: n-resize;
+  }
+
+  /* 南边手柄 */
+  &-s {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 5px;
+    cursor: s-resize;
+  }
+
+  /* 东边手柄 */
+  &-e {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 5px;
+    height: 20px;
+    cursor: e-resize;
+  }
+
+  /* 西边手柄 */
+  &-w {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 5px;
+    height: 20px;
+    cursor: w-resize;
+  }
+}
+
+/* 面板头部样式 */
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #dcdfe6;
+  cursor: move;
+  user-select: none;
+}
+
+/* 面板内容样式 */
+.panelContent {
+  padding: 12px;
+  height: calc(100% - 40px);
+  overflow: auto;
+
+  /* 滚动条样式 */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}
+
+/* 测试用例选择区域 */
+.testCaseSection {
+  margin-bottom: 12px;
+}
+
+.testCaseLabel {
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #606266;
+}
+
+/* 操作按钮区域 */
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.runButton {
+  flex: 1;
+}
+
+/* 进度条区域 */
+.progressSection {
+  margin-bottom: 12px;
+}
+
+.progressText {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 4px;
+}
+
+/* 测试结果区域 */
+.resultsSection {
+  margin-bottom: 12px;
+}
+
+.resultItem {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.resultLabel {
+  font-weight: bold;
+}
+
+.resultStatus {
+  &.success {
+    color: #67c23a;
+  }
+
+  &.error {
+    color: #f56c6c;
+  }
+}
+
+/* 日志区域 */
+.logsSection {
+  // 日志区域样式
+}
+
+.logContainer {
+  max-height: 120px;
+  overflow: auto;
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: monospace;
+  line-height: 1.4;
+}
+
+.logItem {
+  margin-bottom: 2px;
+} 

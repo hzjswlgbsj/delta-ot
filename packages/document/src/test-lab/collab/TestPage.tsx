@@ -2,7 +2,7 @@
 import { defineComponent, onMounted, ref, reactive, watch } from "vue";
 import IframeMessageManager from "../utils/IframeMessageManager";
 import { TestExecutor, createTestExecutor } from "./TestExecutor";
-import FloatingTestPanel from "./FloatingTestPanel";
+import { FloatingTestPanel } from "../components";
 import {
   ElCard,
   ElSelect,
@@ -60,7 +60,7 @@ import {
   query2,
   query3,
 } from "./testCases";
-import { simpleTest, simpleTwoUserTest } from "./simpleTest";
+import { simpleTest, simpleTwoUserTest } from "./testCases";
 
 // 测试用例配置
 const testCases = {

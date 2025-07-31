@@ -4,8 +4,8 @@ export class CursorRenderer {
   private cursorContainer: HTMLElement;
   private cursors: Map<string, HTMLElement> = new Map();
   private positionCursors: Map<number, Set<string>> = new Map();
-  private selectionHighlights: Map<string, HTMLElement> = new Map(); // 新增：选区高亮映射
-  private editorElement: HTMLElement; // 新增：保存编辑器元素引用
+  private selectionHighlights: Map<string, HTMLElement> = new Map();
+  private editorElement: HTMLElement;
 
   constructor(editorElement: HTMLElement) {
     this.editorElement = editorElement;
@@ -24,7 +24,7 @@ export class CursorRenderer {
     this.cursorContainer.style.width = "100%";
     this.cursorContainer.style.height = "100%";
     this.cursorContainer.style.pointerEvents = "none";
-    this.cursorContainer.style.zIndex = "99999"; // 提高 z-index
+    this.cursorContainer.style.zIndex = "99999";
     this.cursorContainer.style.overflow = "visible"; // 改为 visible
     this.cursorContainer.style.backgroundColor = "transparent"; // 恢复透明背景
 
@@ -128,9 +128,9 @@ export class CursorRenderer {
 
     cursorElement.style.position = "absolute";
     cursorElement.style.left = `${bounds.left}px`;
-    cursorElement.style.top = `${bounds.top}px`;
-    cursorElement.style.width = "2px"; // 恢复正常的 2px 宽度
-    cursorElement.style.height = `${bounds.height}px`;
+    cursorElement.style.top = `${bounds.top - 4}px`;
+    cursorElement.style.width = "2px";
+    cursorElement.style.height = `${bounds.height + 4}px`;
     cursorElement.style.backgroundColor = color || "#666";
     cursorElement.style.pointerEvents = "none";
     cursorElement.style.zIndex = "100000";
@@ -164,11 +164,11 @@ export class CursorRenderer {
     selectionHighlight.style.height = `${selectionBounds.height}px`;
 
     // 使用浏览器默认的选中背景色
-    selectionHighlight.style.backgroundColor = "#0078d7"; // 类似浏览器默认选中色
+    selectionHighlight.style.backgroundColor = "#0078d7";
     selectionHighlight.style.opacity = "0.3";
     selectionHighlight.style.pointerEvents = "none";
-    selectionHighlight.style.zIndex = "99998"; // 在光标下方
-    selectionHighlight.style.borderRadius = "0"; // 移除圆角，更像浏览器默认效果
+    selectionHighlight.style.zIndex = "99998";
+    selectionHighlight.style.borderRadius = "0";
 
     this.cursorContainer.appendChild(selectionHighlight);
     this.selectionHighlights.set(userId, selectionHighlight);
@@ -184,7 +184,7 @@ export class CursorRenderer {
     label.innerText = userName;
 
     label.style.position = "absolute";
-    label.style.top = `${-10 - labelOffset}px`;
+    label.style.top = `${-12 - labelOffset}px`;
     label.style.left = "0px";
     label.style.transform = "none";
     label.style.backgroundColor = color || "#666";
@@ -248,7 +248,7 @@ export class CursorRenderer {
           ".cursor-label"
         ) as HTMLElement;
         if (label) {
-          label.style.top = `${-10 - index * 20}px`;
+          label.style.top = `${-20 - index * 20}px`;
         }
       }
       index++;
