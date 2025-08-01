@@ -7,6 +7,7 @@ import {
   ReceiveCommandType,
   ServiceMessage,
 } from "@delta-ot/collaborate";
+import { documentLogger } from "../utils/logger";
 
 interface CollaborateInitConfig {
   userInfo: UserInfo;
@@ -20,7 +21,6 @@ export class CollaborateController {
   private userInfo!: UserInfo;
   private guid!: string;
   private remoteChangeCb: ((delta: Delta) => void) | null = null;
-
   // 光标管理相关
   private cursorUpdateCb: ((cursor: CursorInfo) => void) | null = null;
 
@@ -49,6 +49,10 @@ export class CollaborateController {
 
   /** 上层调用：提交本地变更 */
   commitLocalChange(delta: Delta) {
+    documentLogger.info("CollaborateController.commitLocalChange:", {
+      delta: delta.ops,
+      timestamp: Date.now(),
+    });
     const cmd = this.ws.sendCmd(delta);
     this.otSession.commitLocal(cmd);
   }

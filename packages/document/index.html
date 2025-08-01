@@ -21,6 +21,33 @@
 <body>
   <div id="app"></div>
   <script type="module" src="/src/main.ts"></script>
+
+  <!-- 这段 js 代码是用于 Cursor 获取我们控制台日志所需要触发的逻辑，仅用于开发调试 -->
+  <script>
+    const endpoint = 'http://localhost:3456/log';
+    const types = ['log', 'warn', 'error', 'info', 'debug'];
+
+    for (const type of types) {
+      const original = console[type];
+      console[type] = (...args) => {
+        original.apply(console, args);
+        fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, args, source: location.hostname }),
+        }).then(response => {
+          if (!response.ok) {
+            console.warn('日志发送失败:', response.status);
+          }
+        }).catch(error => {
+          console.warn('日志发送错误:', error);
+        });
+      };
+    }
+
+    console.log('✅ Console hijack initialized for remote logging.');
+
+  </script>
 </body>
 
 </html>

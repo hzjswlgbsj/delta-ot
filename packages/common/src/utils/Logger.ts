@@ -530,8 +530,6 @@ export function initGlobalLogger(config: LoggerConfig): void {
       document: manager.getLogger("document", config),
       service: manager.getLogger("service", config),
     };
-
-    console.log("[GlobalLogger] 初始化日志系统:", config);
   }
 }
 
@@ -551,12 +549,17 @@ export function getGlobalLogger(namespace: string): Logger {
         clientId =
           urlParams.get("clientId") || urlParams.get("client") || undefined;
 
-        // 尝试从 localStorage 获取用户信息
-        const userInfoStr = localStorage.getItem("userInfo");
-
-        if (userInfoStr) {
-          const userInfo = JSON.parse(userInfoStr);
-          username = userInfo.userName || "temp-user";
+        // 优先从 URL 参数获取用户名
+        const loginName = urlParams.get("loginName");
+        if (loginName) {
+          username = loginName;
+        } else {
+          // 如果没有 URL 参数，才从 localStorage 获取用户信息
+          const userInfoStr = localStorage.getItem("userInfo");
+          if (userInfoStr) {
+            const userInfo = JSON.parse(userInfoStr);
+            username = userInfo.userName || "temp-user";
+          }
         }
       } catch (error) {
         console.error("[Logger] 自动初始化时出错:", error);

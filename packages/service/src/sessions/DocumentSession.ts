@@ -145,7 +145,8 @@ export class DocumentSession {
     let transformedDelta = this.cleanRetainZero(cmd.data as Delta);
 
     // 1.如果客户端落后，则需要 transform
-    if (missedCount > 0) {
+    // 注意：只有当客户端序列号大于0时才进行transform，避免对第一个操作进行不必要的transform
+    if (missedCount > 0 && incomingSeq > 0) {
       logger.info("转换前：", JSON.stringify(transformedDelta));
 
       const opsToTransformAgainst = this.historyBuffer.getOpsSince(incomingSeq);

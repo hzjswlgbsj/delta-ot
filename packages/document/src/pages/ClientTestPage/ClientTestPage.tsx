@@ -11,7 +11,7 @@ export default defineComponent({
     const error = ref("");
     const update = ref<Op[]>([]);
     const user = ref<any>(null);
-    const { loginName, pwd, docId } = route.query;
+    const { loginName, pwd, docId, clientId } = route.query;
 
     const init = async () => {
       if (!loginName || !pwd) {
@@ -28,10 +28,16 @@ export default defineComponent({
         // 登录成功后初始化Logger
         console.log(
           "[ClientTestPage] 登录成功，初始化Logger:",
-          user.value.userName
+          user.value.userName,
+          "clientId:",
+          clientId
         );
+
+        // 强制重新初始化Logger，确保使用正确的用户配置
+        console.log("[ClientTestPage] 强制重新初始化Logger");
         initGlobalLogger({
           username: user.value.userName,
+          clientId: clientId as string, // 使用URL参数中的clientId
         });
 
         loading.value = false;

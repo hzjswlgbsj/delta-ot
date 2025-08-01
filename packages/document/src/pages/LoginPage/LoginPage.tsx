@@ -40,6 +40,7 @@ export default defineComponent({
       // 初始化全局日志系统
       initGlobalLogger({
         username: userInfo.userName,
+        clientId: userInfo.userId, // 使用userId作为clientId，确保每个客户端唯一
       });
 
       router.push("/");

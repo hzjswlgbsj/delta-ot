@@ -5,7 +5,7 @@ import { useDocStore } from "../store";
 import { CollaborationMediator } from "./CollaborationMediator";
 import { KeyFramePayload } from "@/types/cmd";
 import { UserInfo } from "@/types/base";
-import { getGlobalLogger } from "../../../common/src/utils/Logger";
+import { documentLogger } from "../utils/logger";
 import { CursorInfo } from "@delta-ot/collaborate";
 
 export class DocumentManager implements CollaborationMediator {
@@ -42,8 +42,7 @@ export class DocumentManager implements CollaborationMediator {
 
     // 注册远端变更回调
     this.collaborate.onRemoteChange((delta) => {
-      const logger = getGlobalLogger("document");
-      logger.info("主动执行更新编辑器内容", delta);
+      documentLogger.info("主动执行更新编辑器内容", delta);
       this.remoteDeltaCallback?.(delta);
     });
 
@@ -55,6 +54,10 @@ export class DocumentManager implements CollaborationMediator {
 
   /** 上层调用：提交本地变更 */
   commitDelta(delta: Delta) {
+    documentLogger.info("DocumentManager.commitDelta:", {
+      delta: delta.ops,
+      timestamp: Date.now(),
+    });
     this.collaborate.commitLocalChange(delta);
   }
 
@@ -90,8 +93,7 @@ export class DocumentManager implements CollaborationMediator {
   }
 
   ackOpById(uuids: string[], broadcastOp?: Delta) {
-    const logger = getGlobalLogger("document");
-    logger.info(`ackOpById:`, {
+    documentLogger.info(`ackOpById:`, {
       uuids,
       broadcastOp: broadcastOp?.ops,
       hasBroadcastOp: !!broadcastOp,
@@ -116,8 +118,7 @@ export class DocumentManager implements CollaborationMediator {
   }
 
   handleKeyFrame(data: KeyFramePayload): void {
-    const logger = getGlobalLogger("document");
-    logger.info("Applying KeyFrame", data);
+    documentLogger.info("Applying KeyFrame", data);
     const docStore = useDocStore();
     const { sequence, content, userIds } = data;
     this.websocket.ws.sequence = sequence;

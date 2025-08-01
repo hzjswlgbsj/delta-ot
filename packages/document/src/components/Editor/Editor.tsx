@@ -11,6 +11,7 @@ import "quill/dist/quill.snow.css";
 import styles from "./style.module.less";
 import type Delta from "quill-delta";
 import { CursorManager } from "../../controllers/CursorManager";
+import { documentLogger } from "@/utils";
 
 export default defineComponent({
   name: "Editor",
@@ -71,6 +72,14 @@ export default defineComponent({
         }
 
         quill.on("text-change", (delta, _old, source) => {
+          documentLogger.info(
+            "Quill text-change事件:",
+            JSON.stringify({
+              delta,
+              _old,
+              source,
+            })
+          );
           if (source === "user" && !isApplyingExternal && props.onChange) {
             // 传递增量变更
             props.onChange(delta);
