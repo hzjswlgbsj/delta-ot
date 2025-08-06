@@ -1,11 +1,13 @@
 // 包裹一个 editor + 状态展示（user、ack、delta）
-import { defineComponent, onMounted, PropType, ref, watch } from "vue";
+import { defineComponent, ref, onMounted, watch, PropType } from "vue";
 import { Editor } from "@/components";
 import { DocumentManager } from "@/controllers/DocumentManager";
-import Delta, { Op } from "quill-delta";
+import { CursorManager } from "@/controllers/CursorManager";
 import { getFileInfo } from "@/services/file";
 import { safeJsonParse } from "@/utils";
+import Delta from "quill-delta";
 import { UserInfo } from "@/types/base";
+import { Op } from "quill-delta";
 
 export default defineComponent({
   props: {

@@ -136,7 +136,6 @@ export class CursorManager {
     return Array.from(this.cursors.values());
   }
 
-  // 获取活跃光标（排除离线用户）
   getActiveCursors(): CursorInfo[] {
     return Array.from(this.cursors.values()).filter(
       (cursor) => cursor.status !== UserStatus.OFFLINE
@@ -144,7 +143,7 @@ export class CursorManager {
   }
 
   destroy() {
+    this.clearAll();
     this.cursorRenderer.destroy();
-    this.cursors.clear();
   }
 }

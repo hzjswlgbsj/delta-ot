@@ -353,6 +353,7 @@ export default defineComponent({
 
     onMounted(() => {
       // 加载保存的测试用例
+      initMessageManagers();
       loadSavedTestCase();
 
       // 默认创建2个客户端

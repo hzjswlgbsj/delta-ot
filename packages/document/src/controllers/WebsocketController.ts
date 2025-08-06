@@ -40,7 +40,7 @@ export class WebsocketController {
         // 这里已经是 UI 层的通知了，操作转换已经在下层做好了，所以这里需要排除自己
         if (cmd.userId === this.options.userInfo.userId) {
           // 已广播自己的操作，进行 ack
-          documentLogger.info(`收到自己的操作确认:`, {
+          documentLogger.info(`收到自己的操作:`, {
             uuid: cmd.uuid,
             userId: cmd.userId,
             data: cmd.data?.ops,
@@ -51,10 +51,7 @@ export class WebsocketController {
           const shouldPassBroadcastOp = this.shouldPassBroadcastOp(cmd.data);
           const broadcastOp = shouldPassBroadcastOp ? cmd.data : undefined;
 
-          documentLogger.info(`是否需要传递广播操作:`, {
-            shouldPassBroadcastOp,
-            broadcastOp: broadcastOp?.ops,
-          });
+          documentLogger.info(`是否有属性冲突`, shouldPassBroadcastOp);
 
           // 只执行 ack，不处理操作内容，避免重复应用
           this.mediator.ackOpById([cmd.uuid], broadcastOp);
@@ -144,7 +141,6 @@ export class WebsocketController {
     );
 
     if (hasOnlyInsertDelete) {
-      documentLogger.info(`检测到插入/删除操作，不需要传递广播操作`);
       return false;
     }
 

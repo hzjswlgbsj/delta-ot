@@ -78,14 +78,18 @@ export class OTSession {
     const cleanedRemoteOp = this.cleanRetainZero(remoteOp);
 
     // 正确的 OT 逻辑：远端操作需要被所有本地未确认操作 transform
-    const transformed = this.unAckOps.reduce((acc, localMsg) => {
-      // 同样清理本地操作中的 retain(0)
-      const cleanedLocalOp = this.cleanRetainZero(localMsg.data);
-      // 客户端处理：本地操作优先级更高（默认值 true）
-      return OTEngine.transform(cleanedLocalOp, acc);
-    }, cleanedRemoteOp);
+    let transformed = cleanedRemoteOp;
+    if (this.unAckOps.length) {
+      logger.info("before transform", JSON.stringify(cleanedRemoteOp));
+      transformed = this.unAckOps.reduce((acc, localMsg) => {
+        // 同样清理本地操作中的 retain(0)
+        const cleanedLocalOp = this.cleanRetainZero(localMsg.data);
+        // 客户端处理：本地操作优先级更高（默认值 true）
+        return OTEngine.transform(cleanedLocalOp, acc);
+      }, cleanedRemoteOp);
 
-    logger.info("transformed", JSON.stringify(transformed));
+      logger.info("after transform", JSON.stringify(transformed));
+    }
 
     // 检查并合并属性冲突（只有在确实有属性冲突时才合并）
     let mergedDelta = transformed;
