@@ -1,5 +1,6 @@
 import { CursorInfo, UserStatus } from "@delta-ot/collaborate";
 import { CursorRenderer } from "../components/Editor/components/CursorRenderer";
+import Delta from "quill-delta";
 
 export class CursorManager {
   private quill: any;
@@ -9,6 +10,60 @@ export class CursorManager {
   constructor(quill: any) {
     this.quill = quill;
     this.cursorRenderer = new CursorRenderer(quill.root);
+  }
+
+  /**
+   * 当远程内容更新时，更新所有光标的位置
+   * 使用 Delta.transformPosition 来计算新的光标位置
+   */
+  updateCursorPositions(remoteDelta: Delta) {
+    const updatedCursors = new Map<string, CursorInfo>();
+
+    for (const [userId, cursor] of this.cursors) {
+      // 使用 transformPosition 计算新的光标位置
+      const newIndex = remoteDelta.transformPosition(cursor.index);
+
+      // 如果有选区，也需要更新选区的结束位置
+      let newLength = cursor.length;
+      if (cursor.length > 0) {
+        const newEndIndex = remoteDelta.transformPosition(
+          cursor.index + cursor.length
+        );
+        newLength = newEndIndex - newIndex;
+      }
+
+      // 创建更新后的光标信息
+      const updatedCursor: CursorInfo = {
+        ...cursor,
+        index: newIndex,
+        length: Math.max(0, newLength), // 确保长度不为负数
+      };
+
+      updatedCursors.set(userId, updatedCursor);
+
+      console.log(
+        `光标位置更新: ${cursor.userName} ${cursor.index}->${newIndex}, 长度: ${cursor.length}->${newLength}`
+      );
+    }
+
+    // 更新内部状态
+    this.cursors = updatedCursors;
+
+    // 重新渲染所有光标
+    this.renderAllCursors();
+  }
+
+  /**
+   * 重新渲染所有光标
+   */
+  private renderAllCursors() {
+    // 先清除所有光标
+    this.cursorRenderer.clearAll();
+
+    // 重新渲染所有光标
+    for (const cursor of this.cursors.values()) {
+      this.updateCursor(cursor, false);
+    }
   }
 
   updateCursor(cursor: CursorInfo, isLocalUser: boolean = false) {

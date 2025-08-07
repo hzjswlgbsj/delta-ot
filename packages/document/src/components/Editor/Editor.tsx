@@ -120,6 +120,11 @@ export default defineComponent({
           isApplyingExternal = true;
           quill.updateContents(delta, "silent");
           isApplyingExternal = false;
+
+          // 更新所有光标的位置
+          if (cursorManager) {
+            cursorManager.updateCursorPositions(delta);
+          }
         }
       },
       { deep: true }
