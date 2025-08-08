@@ -6,7 +6,12 @@ import { CollaborationMediator } from "./CollaborationMediator";
 import { KeyFramePayload } from "@/types/cmd";
 import { UserInfo } from "@/types/base";
 import { documentLogger } from "../utils/logger";
-import { CursorInfo } from "@delta-ot/collaborate";
+import { CursorInfo, OperationBufferOptions } from "@delta-ot/collaborate";
+
+export interface DocumentManagerOptions {
+  /** 操作缓冲器配置 */
+  bufferOptions?: OperationBufferOptions;
+}
 
 export class DocumentManager implements CollaborationMediator {
   private websocket!: WebsocketController;
@@ -16,7 +21,12 @@ export class DocumentManager implements CollaborationMediator {
   // 光标相关回调
   private cursorUpdateCallback: ((cursor: CursorInfo) => void) | null = null;
 
-  async setup(guid: string, userInfo: UserInfo, initialContent?: Delta) {
+  async setup(
+    guid: string,
+    userInfo: UserInfo,
+    initialContent?: Delta,
+    options: DocumentManagerOptions = {}
+  ) {
     // 验证用户信息
     if (!userInfo || !userInfo.userId || !userInfo.userName) {
       throw new Error("用户信息不完整，无法初始化文档管理器");
@@ -36,6 +46,7 @@ export class DocumentManager implements CollaborationMediator {
         userInfo,
         guid: guid,
         ws: this.websocket,
+        bufferOptions: options.bufferOptions,
       },
       initialContent
     );
@@ -61,77 +72,70 @@ export class DocumentManager implements CollaborationMediator {
     this.collaborate.commitLocalChange(delta);
   }
 
-  /** 上层注册远端协同变更回调 */
-  onRemoteDelta(cb: (delta: Delta) => void) {
-    this.remoteDeltaCallback = cb;
+  /** 注册远端变更回调 */
+  onRemoteDelta(callback: (delta: Delta) => void) {
+    this.remoteDeltaCallback = callback;
   }
 
   /** 注册光标更新回调 */
-  onCursorUpdate(cb: (cursor: CursorInfo) => void) {
-    this.cursorUpdateCallback = cb;
+  onCursorUpdate(callback: (cursor: CursorInfo) => void) {
+    this.cursorUpdateCallback = callback;
   }
 
   /** 发送光标消息 */
   sendCursorMessage(cursorData: any) {
-    if (this.websocket) {
-      this.websocket.sendCursorMessage(cursorData);
-    }
+    this.collaborate.sendCursorMessage(cursorData);
   }
 
-  /** 暴露底层 controller（可选） */
-  getWebsocket() {
-    return this.websocket;
+  /** 获取操作缓冲器状态 */
+  getBufferStatus() {
+    return this.collaborate.getBufferStatus();
   }
 
-  getCollaborateController() {
-    return this.collaborate;
+  /** 强制刷新缓冲区 */
+  flushBuffer() {
+    this.collaborate.flushBuffer();
   }
 
-  /** 处理远端操作：由 WebSocket 调用 */
-  handleRemoteOp(delta: Delta) {
-    this.collaborate.otSession.receiveRemote(delta);
+  /** 清空缓冲区 */
+  clearBuffer() {
+    this.collaborate.clearBuffer();
   }
 
-  ackOpById(uuids: string[], broadcastOp?: Delta) {
-    documentLogger.info(`ackOpById:`, {
-      uuids,
-      broadcastOp: broadcastOp?.ops,
-      hasBroadcastOp: !!broadcastOp,
-    });
+  /** 检查缓冲区是否为空 */
+  isBufferEmpty() {
+    return this.collaborate.isBufferEmpty();
+  }
 
-    // 先执行 ack 操作，清理已确认的操作
-    this.collaborate.otSession.ackByIds(uuids);
+  // CollaborationMediator 接口实现
+  handleRemoteOp(delta: Delta): void {
+    // 使用新的远程操作处理机制，确保操作顺序正确
+    this.collaborate.handleRemoteOperation(delta);
+  }
 
-    // 如果有服务端广播操作，单独应用
+  ackOpById(uuid: string[], broadcastOp?: Delta): void {
+    // 清空未确认操作
+    this.collaborate.otSession.ackByIds(uuid);
+
+    // 如果有广播操作，应用它
     if (broadcastOp) {
       this.collaborate.otSession.applyServerBroadcast(broadcastOp);
     }
   }
 
-  /**
-   * 清理 retain(0) 操作，避免 transform 问题
-   * Quill 编辑器会产生 retain(0) 操作，这会导致 transform 结果错误
-   */
-  private cleanRetainZero(delta: Delta): Delta {
-    const cleanedOps = delta.ops.filter((op) => !(op.retain === 0));
-    return new Delta(cleanedOps);
-  }
-
   handleKeyFrame(data: KeyFramePayload): void {
-    documentLogger.info("Applying KeyFrame", data);
-    const docStore = useDocStore();
-    const { sequence, content, userIds } = data;
-    this.websocket.ws.sequence = sequence;
-
-    // 清理 retain(0) 操作，避免 transform 问题
-    const cleanedContent = this.cleanRetainZero(new Delta(content));
-    this.collaborate.otSession.setContents(cleanedContent);
-
-    docStore.setUserIds(userIds);
+    // 处理关键帧数据
+    documentLogger.info("DocumentManager.handleKeyFrame:", data);
   }
 
-  /** 处理光标相关消息 */
   handleCursorMessage(message: any): void {
     this.collaborate.handleCursorMessage(message);
+  }
+
+  destroy() {
+    this.collaborate?.destroy();
+    this.websocket?.destroy();
+    this.remoteDeltaCallback = null;
+    this.cursorUpdateCallback = null;
   }
 }

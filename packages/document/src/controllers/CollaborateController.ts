@@ -6,6 +6,8 @@ import {
   CursorInfo,
   ReceiveCommandType,
   ServiceMessage,
+  OperationBuffer,
+  OperationBufferOptions,
 } from "@delta-ot/collaborate";
 import { documentLogger } from "../utils/logger";
 
@@ -13,6 +15,8 @@ interface CollaborateInitConfig {
   userInfo: UserInfo;
   guid: string;
   ws: WebsocketController;
+  /** 操作缓冲器配置 */
+  bufferOptions?: OperationBufferOptions;
 }
 
 export class CollaborateController {
@@ -23,9 +27,11 @@ export class CollaborateController {
   private remoteChangeCb: ((delta: Delta) => void) | null = null;
   // 光标管理相关
   private cursorUpdateCb: ((cursor: CursorInfo) => void) | null = null;
+  // 操作缓冲器
+  private operationBuffer!: OperationBuffer;
 
   init(config: CollaborateInitConfig, initialContent?: Delta) {
-    const { userInfo, guid, ws } = config;
+    const { userInfo, guid, ws, bufferOptions } = config;
     this.userInfo = userInfo;
     this.guid = guid;
     this.ws = ws;
@@ -35,6 +41,20 @@ export class CollaborateController {
 
     // 初始化 OT 会话
     this.otSession = new OTSession(userInfo.userId, initialContent);
+
+    // 初始化操作缓冲器
+    this.operationBuffer = new OperationBuffer(
+      (composedDelta: Delta) => {
+        this.sendBufferedOperation(composedDelta);
+      },
+      bufferOptions,
+      () => {
+        // 远程操作回调：当收到远程操作时，确保缓冲区已清空
+        documentLogger.info(
+          "CollaborateController: 远程操作回调，缓冲区已清空"
+        );
+      }
+    );
 
     // 注册 OTSession 的远端变更监听器
     this.otSession.onRemoteChange((delta: Delta) => {
@@ -47,14 +67,35 @@ export class CollaborateController {
     this.remoteChangeCb = cb;
   }
 
-  /** 上层调用：提交本地变更 */
+  /** 上层调用：提交本地变更（现在会先缓冲） */
   commitLocalChange(delta: Delta) {
     documentLogger.info("CollaborateController.commitLocalChange:", {
       delta: delta.ops,
       timestamp: Date.now(),
     });
-    const cmd = this.ws.sendCmd(delta);
+
+    // 将操作添加到缓冲器，而不是直接发送
+    this.operationBuffer.addOperation(delta);
+  }
+
+  /** 发送缓冲后的操作 */
+  private sendBufferedOperation(composedDelta: Delta) {
+    documentLogger.info("CollaborateController.sendBufferedOperation:", {
+      composedDelta: composedDelta.ops,
+      timestamp: Date.now(),
+    });
+
+    const cmd = this.ws.sendCmd(composedDelta);
     this.otSession.commitLocal(cmd);
+  }
+
+  /** 处理远程操作 - 关键方法：确保操作顺序正确 */
+  handleRemoteOperation(remoteDelta: Delta) {
+    // 通知缓冲器有远程操作到达，立即刷新缓冲区
+    this.operationBuffer.notifyRemoteOperation();
+
+    // 然后处理远程操作
+    this.otSession.receiveRemote(remoteDelta);
   }
 
   /** 注册光标更新回调 */
@@ -69,10 +110,38 @@ export class CollaborateController {
     }
   }
 
+  /** 发送光标消息 */
+  sendCursorMessage(cursorData: any) {
+    if (this.ws) {
+      this.ws.sendCursorMessage(cursorData);
+    }
+  }
+
+  /** 获取操作缓冲器状态 */
+  getBufferStatus() {
+    return this.operationBuffer.getStatus();
+  }
+
+  /** 强制刷新缓冲区 */
+  flushBuffer() {
+    this.operationBuffer.flush();
+  }
+
+  /** 清空缓冲区 */
+  clearBuffer() {
+    this.operationBuffer.clear();
+  }
+
+  /** 检查缓冲区是否为空 */
+  isBufferEmpty() {
+    return this.operationBuffer.isEmpty();
+  }
+
   destroy() {
     this.ws?.destroy();
     this.remoteChangeCb = null;
     this.otSession?.destroy();
     this.cursorUpdateCb = null;
+    this.operationBuffer?.destroy();
   }
 }
