@@ -24,17 +24,26 @@ export class RedisMonitor {
       }
 
       return {
-        usedMemory: memoryInfo.used_memory,
-        usedMemoryHuman: memoryInfo.used_memory_human,
-        usedMemoryPeak: memoryInfo.used_memory_peak,
-        usedMemoryPeakHuman: memoryInfo.used_memory_peak_human,
-        maxMemory: memoryInfo.maxmemory,
-        maxMemoryHuman: memoryInfo.maxmemory_human,
-        maxMemoryPolicy: memoryInfo.maxmemory_policy,
+        usedMemory: memoryInfo.used_memory || "0",
+        usedMemoryHuman: memoryInfo.used_memory_human || "0B",
+        usedMemoryPeak: memoryInfo.used_memory_peak || "0",
+        usedMemoryPeakHuman: memoryInfo.used_memory_peak_human || "0B",
+        maxMemory: memoryInfo.maxmemory || "0",
+        maxMemoryHuman: memoryInfo.maxmemory_human || "0B",
+        maxMemoryPolicy: memoryInfo.maxmemory_policy || "noeviction",
       };
     } catch (error) {
       logger.error("获取Redis内存信息失败:", error);
-      return null;
+      // 返回默认值而不是null
+      return {
+        usedMemory: "0",
+        usedMemoryHuman: "0B",
+        usedMemoryPeak: "0",
+        usedMemoryPeakHuman: "0B",
+        maxMemory: "0",
+        maxMemoryHuman: "0B",
+        maxMemoryPolicy: "noeviction",
+      };
     }
   }
 
@@ -118,7 +127,23 @@ export class RedisMonitor {
     // 默认5分钟
     const monitor = async () => {
       const stats = await this.getMemoryStats();
-      logger.info("Redis内存监控:", JSON.stringify(stats));
+
+      // 添加更详细的内存信息日志
+      if (stats.memoryInfo) {
+        const usedMemoryMB = (
+          parseInt(stats.memoryInfo.usedMemory) /
+          1024 /
+          1024
+        ).toFixed(2);
+        const maxMemoryMB =
+          stats.memoryInfo.maxMemory !== "0"
+            ? (parseInt(stats.memoryInfo.maxMemory) / 1024 / 1024).toFixed(2)
+            : "未设置";
+
+        logger.info(
+          `Redis内存监控 - 已用: ${usedMemoryMB}MB, 上限: ${maxMemoryMB}MB, 键数量: ${stats.keyCount}`
+        );
+      }
 
       // 如果内存使用超过80%，进行清理
       if (
@@ -128,11 +153,30 @@ export class RedisMonitor {
       ) {
         const usedMemory = parseInt(stats.memoryInfo.usedMemory);
         const maxMemory = parseInt(stats.memoryInfo.maxMemory);
-        const usagePercent = (usedMemory / maxMemory) * 100;
 
-        if (usagePercent > 80) {
-          logger.warn(`Redis内存使用率过高: ${usagePercent.toFixed(2)}%`);
-          await this.cleanupExpiredTokens();
+        // 检查maxMemory是否为有效值（大于0）
+        if (maxMemory > 0) {
+          const usagePercent = (usedMemory / maxMemory) * 100;
+
+          if (usagePercent > 80) {
+            logger.warn(`Redis内存使用率过高: ${usagePercent.toFixed(2)}%`);
+            await this.cleanupExpiredTokens();
+          }
+        } else {
+          // 如果没有设置maxmemory，只记录当前内存使用量
+          const usedMemoryMB = (usedMemory / 1024 / 1024).toFixed(2);
+          logger.info(`Redis当前内存使用: ${usedMemoryMB}MB (未设置内存上限)`);
+
+          // 如果内存使用超过1GB，进行清理（可配置的阈值）
+          const MEMORY_THRESHOLD_BYTES = 1024 * 1024 * 1024; // 1GB
+          if (usedMemory > MEMORY_THRESHOLD_BYTES) {
+            logger.warn(
+              `Redis内存使用超过${
+                MEMORY_THRESHOLD_BYTES / 1024 / 1024
+              }MB，开始清理`
+            );
+            await this.cleanupExpiredTokens();
+          }
         }
       }
     };

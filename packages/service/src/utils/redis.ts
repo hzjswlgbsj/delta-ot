@@ -6,6 +6,9 @@ const redis = new Redis({
   port: Number(REDIS_PORT),
   password: REDIS_PASSWORD,
   db: 0,
+  // 添加连接优化配置
+  maxRetriesPerRequest: 3,
+  lazyConnect: true,
 });
 
 export default redis;
