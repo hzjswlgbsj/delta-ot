@@ -3,8 +3,9 @@ import {
   UndoRedoState,
   ConflictInfo,
   ConflictResolution,
-  PerformanceMetrics,
 } from "../types";
+import { EventEmitter } from "./EventEmitter";
+import { EVENT_TYPES } from "../constants";
 
 /**
  * 撤销重做事件接口
@@ -44,76 +45,80 @@ export interface IUndoRedoEvents {
  * 管理所有撤销重做相关的事件
  */
 export class UndoRedoEventManager {
-  private eventEmitter: any; // 这里需要导入EventEmitter
+  private eventEmitter: EventEmitter;
 
-  constructor(eventEmitter: any) {
+  constructor(eventEmitter: EventEmitter) {
     this.eventEmitter = eventEmitter;
   }
 
   // 操作事件
   emitOperationApplied(operation: OperationHistoryItem): void {
-    this.eventEmitter.emit("operationApplied", operation);
+    this.eventEmitter.emit(EVENT_TYPES.OPERATION_APPLIED, operation);
   }
 
   emitOperationUndone(operation: OperationHistoryItem): void {
-    this.eventEmitter.emit("operationUndone", operation);
+    this.eventEmitter.emit(EVENT_TYPES.OPERATION_UNDONE, operation);
   }
 
   emitOperationRedone(operation: OperationHistoryItem): void {
-    this.eventEmitter.emit("operationRedone", operation);
+    this.eventEmitter.emit(EVENT_TYPES.OPERATION_REDONE, operation);
   }
 
   emitOperationFailed(operation: OperationHistoryItem, error: Error): void {
-    this.eventEmitter.emit("operationFailed", operation, error);
+    this.eventEmitter.emit(EVENT_TYPES.OPERATION_FAILED, operation, error);
   }
 
   // 状态事件
   emitStateChanged(state: UndoRedoState): void {
-    this.eventEmitter.emit("stateChanged", state);
+    this.eventEmitter.emit(EVENT_TYPES.STATE_CHANGED, state);
   }
 
   emitUndoStackChanged(operations: OperationHistoryItem[]): void {
-    this.eventEmitter.emit("undoStackChanged", operations);
+    this.eventEmitter.emit(EVENT_TYPES.UNDO_STACK_CHANGED, operations);
   }
 
   emitRedoStackChanged(operations: OperationHistoryItem[]): void {
-    this.eventEmitter.emit("redoStackChanged", operations);
+    this.eventEmitter.emit(EVENT_TYPES.REDO_STACK_CHANGED, operations);
   }
 
   // 协同事件
   emitConflictDetected(conflict: ConflictInfo): void {
-    this.eventEmitter.emit("conflictDetected", conflict);
+    this.eventEmitter.emit(EVENT_TYPES.CONFLICT_DETECTED, conflict);
   }
 
   emitConflictResolved(
     conflict: ConflictInfo,
     resolution: ConflictResolution
   ): void {
-    this.eventEmitter.emit("conflictResolved", conflict, resolution);
+    this.eventEmitter.emit(EVENT_TYPES.CONFLICT_RESOLVED, conflict, resolution);
   }
 
   emitRemoteStateReceived(remoteState: UndoRedoState): void {
-    this.eventEmitter.emit("remoteStateReceived", remoteState);
+    this.eventEmitter.emit(EVENT_TYPES.REMOTE_STATE_RECEIVED, remoteState);
   }
 
   // 性能事件
   emitMemoryUsageChanged(usage: number, limit: number): void {
-    this.eventEmitter.emit("memoryUsageChanged", usage, limit);
+    this.eventEmitter.emit(EVENT_TYPES.MEMORY_USAGE_CHANGED, usage, limit);
   }
 
   emitOperationProcessed(
     operation: OperationHistoryItem,
     duration: number
   ): void {
-    this.eventEmitter.emit("operationProcessed", operation, duration);
+    this.eventEmitter.emit(
+      EVENT_TYPES.OPERATION_PROCESSED,
+      operation,
+      duration
+    );
   }
 
   // 插件事件
   emitPluginLoaded(pluginName: string): void {
-    this.eventEmitter.emit("pluginLoaded", pluginName);
+    this.eventEmitter.emit(EVENT_TYPES.PLUGIN_LOADED, pluginName);
   }
 
   emitPluginError(pluginName: string, error: Error): void {
-    this.eventEmitter.emit("pluginError", pluginName, error);
+    this.eventEmitter.emit(EVENT_TYPES.PLUGIN_ERROR, pluginName, error);
   }
 }

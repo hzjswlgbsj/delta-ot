@@ -4,10 +4,9 @@ import {
   OperationFilter,
   StorageStats,
   OperationType,
-  OPERATION_PRIORITIES,
-  CLEANUP_STRATEGIES,
 } from "./types";
 import { DEFAULT_UNDO_REDO_CONFIG } from "./constants";
+import { OPERATION_PRIORITIES, CLEANUP_STRATEGIES } from "./constants";
 import { Logger } from "@delta-ot/common";
 
 /**
@@ -148,6 +147,20 @@ export class OperationHistoryManager {
       storageStats: this.getStorageStats(),
       performanceMetrics: this.getPerformanceMetrics(),
     };
+  }
+
+  /**
+   * 获取撤销栈（只读副本）
+   */
+  getUndoStack(): OperationHistoryItem[] {
+    return [...this.undoStack];
+  }
+
+  /**
+   * 获取重做栈（只读副本）
+   */
+  getRedoStack(): OperationHistoryItem[] {
+    return [...this.redoStack];
   }
 
   /**
