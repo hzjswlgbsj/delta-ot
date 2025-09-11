@@ -7,7 +7,7 @@ import {
 } from "./types";
 import { DEFAULT_UNDO_REDO_CONFIG } from "./constants";
 import { OPERATION_PRIORITIES, CLEANUP_STRATEGIES } from "./constants";
-import { Logger } from "@delta-ot/common";
+import { Logger } from "../../../../common/src/utils/Logger";
 
 /**
  * 操作历史管理器
@@ -35,7 +35,10 @@ export class OperationHistoryManager {
     this.cleanupStrategy = config.enableCompression
       ? CLEANUP_STRATEGIES.LRU
       : CLEANUP_STRATEGIES.FIFO;
-    this.logger = new Logger("OperationHistoryManager", userId);
+    this.logger = new Logger({
+      namespace: "OperationHistoryManager",
+      username: userId,
+    });
 
     this.logger.info("OperationHistoryManager initialized", {
       documentId,

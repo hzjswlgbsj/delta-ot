@@ -15,9 +15,22 @@ import { EventEmitter } from "./events/EventEmitter";
 import { UndoRedoEventManager } from "./events/UndoRedoEvents";
 import { EVENT_TYPES } from "./constants";
 import { IOperationStrategy } from "./strategies/IOperationStrategy";
+import { TextOperationStrategy } from "./strategies/TextOperationStrategy";
 import { IUndoRedoPlugin } from "./plugins/IUndoRedoPlugin";
 import { DEFAULT_UNDO_REDO_CONFIG } from "./constants";
 import { Logger } from "../../../../common/src/utils/Logger";
+
+/**
+ * 编辑器代理接口
+ * 用于与 Quill 编辑器交互，避免直接操作编辑器导致的事件冲突
+ */
+export interface IEditorProxy {
+  applyDelta(delta: Delta): Promise<void>;
+  getContents(): Delta;
+  setContents(delta: Delta): Promise<void>;
+  getSelection(): any;
+  setSelection(range: any): void;
+}
 
 /**
  * 撤销重做引擎
@@ -34,6 +47,7 @@ export class UndoRedoEngine {
   private userId: string;
   private config: typeof DEFAULT_UNDO_REDO_CONFIG;
   private isProcessing: boolean = false;
+  private editorProxy?: IEditorProxy;
 
   constructor(
     operationHistory: OperationHistoryManager,
@@ -78,6 +92,14 @@ export class UndoRedoEngine {
       strategyName: strategy.name,
       totalStrategies: this.strategies.size,
     });
+  }
+
+  /**
+   * 设置编辑器代理
+   */
+  setEditorProxy(proxy: IEditorProxy): void {
+    this.editorProxy = proxy;
+    this.logger.info("Editor proxy set");
   }
 
   /**
@@ -354,16 +376,25 @@ export class UndoRedoEngine {
     originalOperation: OperationHistoryItem
   ): Promise<void> {
     try {
-      // 这里需要与Quill编辑器集成
-      // 暂时只是记录日志
       this.logger.debug("Applying operation", {
         operationId: originalOperation.id,
         operationType: originalOperation.type,
         deltaOps: operation.ops?.length || 0,
       });
 
-      // TODO: 实际应用操作到编辑器
-      // await this.editor.applyDelta(operation);
+      if (this.editorProxy) {
+        // 通过编辑器代理应用操作，避免直接操作编辑器导致的事件冲突
+        await this.editorProxy.applyDelta(operation);
+
+        this.logger.debug("Operation applied successfully", {
+          operationId: originalOperation.id,
+        });
+      } else {
+        this.logger.warn("No editor proxy set, operation not applied", {
+          operationId: originalOperation.id,
+        });
+        // 即使没有编辑器代理，也不抛出错误，允许引擎继续工作
+      }
     } catch (error) {
       this.logger.error("Failed to apply operation", {
         operationId: originalOperation.id,
@@ -386,9 +417,12 @@ export class UndoRedoEngine {
    * 初始化默认策略
    */
   private initializeDefaultStrategies(): void {
-    // 这里会注册默认的策略实现
-    // 暂时为空，等待策略实现完成后再添加
-    this.logger.info("Default strategies initialization completed");
+    // 注册文本操作策略
+    this.registerStrategy(new TextOperationStrategy());
+
+    this.logger.info("Default strategies initialization completed", {
+      registeredStrategies: Array.from(this.strategies.keys()),
+    });
   }
 
   /**

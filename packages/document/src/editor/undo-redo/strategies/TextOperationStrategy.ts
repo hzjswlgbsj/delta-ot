@@ -1,4 +1,4 @@
-import { Delta } from "quill-delta";
+import Delta from "quill-delta";
 import {
   OperationHistoryItem,
   ProcessResult,
@@ -6,8 +6,8 @@ import {
   UndoResult,
   RedoResult,
   OperationType,
-  OPERATION_PRIORITIES,
 } from "../types";
+import { OPERATION_PRIORITIES } from "../constants";
 import { IOperationStrategy } from "./IOperationStrategy";
 
 /**
@@ -231,4 +231,3 @@ export class TextOperationStrategy implements IOperationStrategy {
     return new Delta(insertOps);
   }
 }
-
